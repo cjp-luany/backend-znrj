@@ -1,0 +1,9 @@
+
+*.db
+*.env
+
+ai_note_book/.idea
+ai_note_book/.vscode    
+__pycache__/
+
+*.DS_Store
