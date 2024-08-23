@@ -13,7 +13,7 @@ from fastapi import Depends, FastAPI, HTTPException, Request, Response
 # PARENT_DIR = os.path.dirname(CUR_DIR)
 # JOIN_DIR = os.path.join(CUR_DIR, "sqlite.db")
 # DATABASE_URL = "sqlite:///" + JOIN_DIR  # 这里的路径应该是你的数据库文件的路径
-DATABASE_URL = "sqlite:////Users/yuanchaoyi/Documents/Ai项目/ai_note_book v1.0/sqlite.db"
+DATABASE_URL = "sqlite:///D://develop//080724.znrj//ai_note_book//ai_note_book//sqlite.db"
 SERVER_URL = "47.115.151.97"
 ANYTHINGLLM_TOKEN = "A6WW35F-A6RMWBH-PWRQJV3-5DT5DYS"  # this is server anything llm token
 ISRAG_WORKSPACE_NAME = "israg"
@@ -42,6 +42,8 @@ CREATE TABLE record (
     wake_location String, -- [提醒坐标],格式为String:经度,纬度 
     record_descrpt STR , -- [事件总结]
     record_status BOOLEAN -- [事件状态]，0为未完成，1为完成
+    image_descrpt STR -- [图片描述]，如用户未提及则为Null
+    image_id STR -- [图片ID]，如用户未提及则为Null
 );
 """
 
@@ -252,7 +254,9 @@ def summarize_records(data_list):
             f"[提醒时间]为{record['wake_time']}，"
             f"[提醒地点]为{record['target_location_name']}，"
             f"[事件总结]为{record['record_descrpt']}，"
-            f"[事件状态]为{'完成' if record['record_status'] else '未完成'}。"
+            f"[事件状态]为{'完成' if record['record_status'] else '未完成'},"
+            f"[图片描述]为{record['image_descrpt']}，"
+            f"[图片ID]为{record['image_id']}."
         )
         new_data_list.append(summary)
     return new_data_list

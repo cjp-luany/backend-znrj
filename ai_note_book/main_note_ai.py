@@ -72,206 +72,233 @@ def reset_clear_timer():
     clear_timer = threading.Timer(300, clear_chat_history)
     clear_timer.start()
 
-def chat(user_input,latitude,longitude):
-    # query_during_chat() # 对话中查询，使用服务器rag
-    reset_clear_timer()
-    message = {"role": "user", "content": user_input}
-    chat_history.append(message)
-    # 调用GPT-4模型
-    while True:
-        print("=====本轮回复=====")
-        response = get_completion(chat_history)
-        print_json(response)
-        if response.content is None:
-            response.content = ""
-        chat_history.append(response)
-        if response.tool_calls:
-            # Loop through each tool in the required action section
-            for tool in response.tool_calls:
-                if tool.function.name == "get_time":
-                    result = get_time()
-                    print("====记录时间====")
-                    print(result)
-                    chat_history.append({
-                        "tool_call_id": tool.id,
-                        "role": "tool",
-                        "name": "get_time",
-                        "content": str(result)
-                    })
-                elif tool.function.name == "get_week_day":
-                    result = get_week_day()
-                    print("====记录时间====")
-                    print(result)
-                    chat_history.append({
-                        "tool_call_id": tool.id,
-                        "role": "tool",
-                        "name": "get_week_day",
-                        "content": str(result)
-                    })
-                elif tool.function.name == "get_key":
-                    tool_call = response.tool_calls[0]
-                    result = get_key()
-                    print("====key id====")
-                    print_json(result)
-                    chat_history.append({
-                        "tool_call_id": tool.id,
-                        "role": "tool",
-                        "name": "get_key",
-                        "content": str(result)
-                    })
-                elif tool.function.name == "get_current_location":
-                    result = get_current_location(latitude,longitude)
-                    print("====记录坐标====")
-                    print(result)
-                    chat_history.append({
-                        "tool_call_id": tool.id,
-                        "role": "tool",
-                        "name": "get_current_location",
-                        "content": str(result)
-                    })
-                elif tool.function.name == "get_current_location_name":
-                    result = get_current_location_name(latitude,longitude)
-                    print("====记录位置====")
-                    print(result)
-                    chat_history.append({
-                        "tool_call_id": tool.id,
-                        "role": "tool",
-                        "name": "get_current_location_name",
-                        "content": str(result)
-                    })
-                elif tool.function.name == "get_location_summary":
-                    tool_call = response.tool_calls[0]
-                    arguments = tool_call.function.arguments
-                    print("====查询的目标====")
-                    print(arguments)
-                    result = get_location_summary(arguments,latitude,longitude)
-                    print("====返回的地址信息====")
-                    print(result)
-                    chat_history.append({
-                        "tool_call_id": tool.id,
-                        "role": "tool",
-                        "name": "get_location_summary",
-                        "content": str(result)
-                    })
-                elif tool.function.name == "sql_operate":
-                    tool_call = response.tool_calls[0]
-                    arguments = tool_call.function.arguments
-                    args = json.loads(arguments)
-                    print("====SQL====")
-                    print(args["query"])
-                    result = sql_operate(args["query"])
-                    print("====结果====")
-                    print(result)
-                    chat_history.append({
-                        "tool_call_id": tool.id,
-                        "role": "tool",
-                        "name": "sql_operate",
-                        "content": str(result)
-                    })
-                elif tool.function.name == "sql_search":
-                    tool_call = response.tool_calls[0]
-                    arguments = tool_call.function.arguments
-                    args = json.loads(arguments)
-                    print("====SQL====")
-                    print(args["query"])
-                    result = sql_search(args["query"])
-                    print("====DB Records====")
-                    print(result)
-                    chat_history.append({
-                        "tool_call_id": tool.id,
-                        "role": "tool",
-                        "name": "sql",
-                        "content": str(result)
-                    })
-                elif tool.function.name == "sql_get_summarized":
-                    tool_call = response.tool_calls[0]
-                    arguments = tool_call.function.arguments
-                    args = json.loads(arguments)
-                    print("====SQL====")
-                    print(args["query"])
-                    result = sql_get_summarized(args["query"])
-                    print("====Filtered Records====")
-                    print_json(result)
-                    chat_history.append({
-                        "tool_call_id": tool.id,
-                        "role": "tool",
-                        "name": "sql_get_summarized",
-                        "content": str(result)
-                    })
-                elif tool.function.name == "sql_all_summarized":
-                    result = sql_all_summarized()
-                    print("====all Records====")
-                    print_json(result)
-                    chat_history.append({
-                        "tool_call_id": tool.id,
-                        "role": "tool",
-                        "name": "sql_all_summarized",
-                        "content": str(result)
-                    })
-                elif tool.function.name == "rag":
-                    tool_call = response.tool_calls[0]
-                    arguments = tool_call.function.arguments
-                    print("====查询内容====")
-                    print(arguments)
-                    result = read_data_rec(arguments)
-                    print("====查询结果====")
-                    print(result)
-                    chat_history.append({
-                        "tool_call_id": tool.id,
-                        "role": "tool",
-                        "name": "rag",
-                        "content": str(result)
-                    })
-                # elif tool.function.name == "thought_summarize":
-                #     tool_call = response.tool_calls[0]
-                #     arguments = tool_call.function.arguments
-                #     print("====思考内容====")
-                #     print(arguments)
-                #     result = thought_summarize(arguments)
-                #     chat_history.append({
-                #         "tool_call_id": tool.id,
-                #         "role": "tool",
-                #         "name": "tool_thought_summarize",
-                #         "content": str(result)
-                #     })
-                elif tool.function.name == "thought_step":
-                    tool_call = response.tool_calls[0]
-                    arguments = tool_call.function.arguments
-                    print("====思考记录====")
-                    print(arguments)
-                    result = thought_step(arguments)
-                    chat_history.append({
-                        "tool_call_id": tool.id,
-                        "role": "tool",
-                        "name": "thought_step",
-                        "content": str(result)
-                    })
+def chat_warpper(tool_history:list):
+    def chat(user_input,latitude,longitude):
+        # query_during_chat() # 对话中查询，使用服务器rag
+        reset_clear_timer()
+        message = {"role": "user", "content": user_input}
+        chat_history.append(message)
+        # 调用GPT-4模型
+        while True:
+            print("=====本轮回复=====")
+            response = get_completion(chat_history)
+            print_json(response)
+            if response.content is None:
+                response.content = ""
+            chat_history.append(response)
+            if response.tool_calls:
+                # Loop through each tool in the required action section
+                for tool in response.tool_calls:
+                    if tool.function.name == "get_time":
+                        tool_history.append("get_time")
+                        result = get_time()
+                        print("====记录时间====")
+                        print(result)
+                        chat_history.append({
+                            "tool_call_id": tool.id,
+                            "role": "tool",
+                            "name": "get_time",
+                            "content": str(result)
+                        })
+                    elif tool.function.name == "get_week_day":
+                        result = get_week_day()
+                        print("====记录时间====")
+                        print(result)
+                        chat_history.append({
+                            "tool_call_id": tool.id,
+                            "role": "tool",
+                            "name": "get_week_day",
+                            "content": str(result)
+                        })
+                    elif tool.function.name == "get_key":
+                        tool_call = response.tool_calls[0]
+                        result = get_key()
+                        print("====key id====")
+                        print_json(result)
+                        chat_history.append({
+                            "tool_call_id": tool.id,
+                            "role": "tool",
+                            "name": "get_key",
+                            "content": str(result)
+                        })
+                    elif tool.function.name == "get_current_location":
+                        result = get_current_location()
+                        print("====记录坐标====")
+                        print(result)
+                        chat_history.append({
+                            "tool_call_id": tool.id,
+                            "role": "tool",
+                            "name": "get_current_location",
+                            "content": str(result)
+                        })
+                    elif tool.function.name == "get_current_location_name":
+                        result = get_current_location_name()
+                        print("====记录位置====")
+                        print(result)
+                        chat_history.append({
+                            "tool_call_id": tool.id,
+                            "role": "tool",
+                            "name": "get_current_location_name",
+                            "content": str(result)
+                        })
+                    elif tool.function.name == "get_location_summary":
+                        tool_call = response.tool_calls[0]
+                        arguments = tool_call.function.arguments
+                        print("====查询的目标====")
+                        print(arguments)
+                        result = get_location_summary(arguments,latitude,longitude)
+                        print("====返回的地址信息====")
+                        print(result)
+                        chat_history.append({
+                            "tool_call_id": tool.id,
+                            "role": "tool",
+                            "name": "get_location_summary",
+                            "content": str(result)
+                        })
+                    elif tool.function.name == "sql_operate":
+                        tool_call = response.tool_calls[0]
+                        arguments = tool_call.function.arguments
+                        args = json.loads(arguments)
+                        print("====SQL====")
+                        print(args["query"])
+                        result = sql_operate(args["query"])
+                        print("====结果====")
+                        print(result)
+                        chat_history.append({
+                            "tool_call_id": tool.id,
+                            "role": "tool",
+                            "name": "sql_operate",
+                            "content": str(result)
+                        })
+                    elif tool.function.name == "sql_search":
+                        tool_call = response.tool_calls[0]
+                        arguments = tool_call.function.arguments
+                        args = json.loads(arguments)
+                        print("====SQL====")
+                        print(args["user_input"])
+                        result = sql_search(args["user_input"])
+                        print("====DB Records====")
+                        print(result)
+                        chat_history.append({
+                            "tool_call_id": tool.id,
+                            "role": "tool",
+                            "name": "sql",
+                            "content": str(result)
+                        })
+                    elif tool.function.name == "sql_get_summarized":
+                        tool_call = response.tool_calls[0]
+                        arguments = tool_call.function.arguments
+                        args = json.loads(arguments)
+                        print("====SQL====")
+                        print(args["query"])
+                        result = sql_get_summarized(args["query"])
+                        print("====Filtered Records====")
+                        print_json(result)
+                        chat_history.append({
+                            "tool_call_id": tool.id,
+                            "role": "tool",
+                            "name": "sql_get_summarized",
+                            "content": str(result)
+                        })
+                    elif tool.function.name == "sql_all_summarized":
+                        result = sql_all_summarized()
+                        print("====all Records====")
+                        print_json(result)
+                        chat_history.append({
+                            "tool_call_id": tool.id,
+                            "role": "tool",
+                            "name": "sql_all_summarized",
+                            "content": str(result)
+                        })
+                    elif tool.function.name == "rag":
+                        tool_call = response.tool_calls[0]
+                        arguments = tool_call.function.arguments
+                        print("====查询内容====")
+                        print(arguments)
+                        result = read_data_rec(arguments)
+                        print("====查询结果====")
+                        print(result)
+                        chat_history.append({
+                            "tool_call_id": tool.id,
+                            "role": "tool",
+                            "name": "rag",
+                            "content": str(result)
+                        })
+                    # elif tool.function.name == "thought_summarize":
+                    #     tool_call = response.tool_calls[0]
+                    #     arguments = tool_call.function.arguments
+                    #     print("====思考内容====")
+                    #     print(arguments)
+                    #     result = thought_summarize(arguments)
+                    #     chat_history.append({
+                    #         "tool_call_id": tool.id,
+                    #         "role": "tool",
+                    #         "name": "tool_thought_summarize",
+                    #         "content": str(result)
+                    #     })
+                    elif tool.function.name == "thought_step":
+                        tool_call = response.tool_calls[0]
+                        arguments = tool_call.function.arguments
+                        print("====思考记录====")
+                        print(arguments)
+                        result = thought_step(arguments)
+                        chat_history.append({
+                            "tool_call_id": tool.id,
+                            "role": "tool",
+                            "name": "thought_step",
+                            "content": str(result)
+                        })
 
-        else:
-            chat_history.append({"role": "assistant", "content": response.content})
-            print("=====最终回复=====")
-            print(response.content)
-            print("=====chat_history=====")
-            print_json(chat_history)
-            break
-    return chat_history[-1]["content"]
+            else:
+                chat_history.append({"role": "assistant", "content": response.content})
+                print("=====最终回复=====")
+                print(response.content)
+                print("=====chat_history=====")
+                print_json(chat_history)
+                break
+        return chat_history[-1]["content"]
+
+
+latitude = 0
+longitude = 0
+user_id ="TODO:"
 
 class Query(BaseModel):
     query:str 
     latitude:str
     longitude:str
+
+tool_historys = {"auser":[]}
+
+@api.get("/now_at")
+def _():
+    return tool_historys[user_id]
+
 @api.post("/query/")
 def start_loop(query_value:Query):
+    tool_history = []
     # question = "明天早上8点开会"
     query_dic = query_value.dict()
+    global latitude
+    global longitude
     print(query_dic)
     if "query" not in query_dic:
         current_location = get_current_location(query_dic['latitude'],query_dic['longitude'])
+        latitude = query_dic['latitude']
+        longitude = query_dic['longitude']
     elif "query" in query_dic:
-        response = chat(query_dic["query"],query_dic['latitude'],query_dic['longitude'])
+        latitude = query_dic['latitude']
+        longitude = query_dic['longitude']
+        response = chat_warpper(tool_history[user_id])(query_dic["query"],query_dic['latitude'],query_dic['longitude'])
     # Example use
     # print(response)
     return {"Response":response,'code':200}
+
+
+@api.get("/get_lat_longit/")
+def get_lat_longit_value():
+    return latitude,longitude
+
 
 def run_fastapi():
     uvicorn.run(api, host="0.0.0.0", port=6202, loop="asyncio")
