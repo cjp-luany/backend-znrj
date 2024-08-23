@@ -7,8 +7,8 @@ from tools.tools_location import *
 import uvicorn
 from threading import Thread
 from pydantic import BaseModel
-from api import RecordItem,run_fastapi2
-from fastapi import Depends, FastAPI, HTTPException, Request, Response
+from api import run_fastapi2
+from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 import threading 
 # 数据库连接

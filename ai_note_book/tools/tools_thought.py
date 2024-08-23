@@ -1,4 +1,3 @@
-import json
 
 summarize_thought_string = """
     总结思路方式：
@@ -76,7 +75,7 @@ tool_thought_step = [{
             "properties": {
                 "query": {
                     "type": "string",
-                    "description": f"""
+                    "description": """
                         按以下标准模板思考，并一步步输出每一项:
                         1. 关键概念：思考基于#关键概念定义所列出的[关键概念]，你取得了哪些关键概念。
                         同时可能存在多个事件，你应使用事件编号进行区分。
