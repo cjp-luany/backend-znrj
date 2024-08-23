@@ -74,6 +74,7 @@ def reset_clear_timer():
 
 def chat_warpper(tool_history:list) -> callable:
     tool_history = []
+    # 处理特定用户的逻辑可以放在这里
     def chat(user_input,latitude,longitude):
         # query_during_chat() # 对话中查询，使用服务器rag
         reset_clear_timer()
