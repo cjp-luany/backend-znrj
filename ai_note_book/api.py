@@ -414,6 +414,19 @@ async def recognize_one_image(item: UploadImageItem, db: AsyncSession = Depends(
         "data": "请求异常:" + e
     }
 
+@api.get("/getImageUUID/")
+async def get_image_from_uuid(uuid:str, db: AsyncSession = Depends(get_session)):
+    try:
+        return {
+            "code": 200,
+            "data": crud_record.get(db, ImageItem.id == uuid)
+        }
+    except:
+        return {
+            "code": 500,
+            "data": f"未找到图片或内部错误"
+        }
+
 
 # 启动fastapi
 def run_fastapi2():
