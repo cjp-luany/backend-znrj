@@ -72,7 +72,8 @@ def reset_clear_timer():
     clear_timer = threading.Timer(300, clear_chat_history)
     clear_timer.start()
 
-def chat_warpper(tool_history:list):
+def chat_warpper(tool_history:list) -> callable:
+    tool_history = []
     def chat(user_input,latitude,longitude):
         # query_during_chat() # 对话中查询，使用服务器rag
         reset_clear_timer()
@@ -101,6 +102,7 @@ def chat_warpper(tool_history:list):
                             "content": str(result)
                         })
                     elif tool.function.name == "get_week_day":
+                        tool_history.append("get_week_day")
                         result = get_week_day()
                         print("====记录时间====")
                         print(result)
@@ -111,6 +113,7 @@ def chat_warpper(tool_history:list):
                             "content": str(result)
                         })
                     elif tool.function.name == "get_key":
+                        tool_history.append("get_key")
                         tool_call = response.tool_calls[0]
                         result = get_key()
                         print("====key id====")
@@ -122,6 +125,7 @@ def chat_warpper(tool_history:list):
                             "content": str(result)
                         })
                     elif tool.function.name == "get_current_location":
+                        tool_history.append("get_current_location")
                         result = get_current_location()
                         print("====记录坐标====")
                         print(result)
@@ -132,6 +136,7 @@ def chat_warpper(tool_history:list):
                             "content": str(result)
                         })
                     elif tool.function.name == "get_current_location_name":
+                        tool_history.append("get_current_location_name")
                         result = get_current_location_name()
                         print("====记录位置====")
                         print(result)
@@ -142,6 +147,7 @@ def chat_warpper(tool_history:list):
                             "content": str(result)
                         })
                     elif tool.function.name == "get_location_summary":
+                        tool_history.append("get_location_summary")
                         tool_call = response.tool_calls[0]
                         arguments = tool_call.function.arguments
                         print("====查询的目标====")
@@ -156,6 +162,7 @@ def chat_warpper(tool_history:list):
                             "content": str(result)
                         })
                     elif tool.function.name == "sql_operate":
+                        tool_history.append("sql_operate")
                         tool_call = response.tool_calls[0]
                         arguments = tool_call.function.arguments
                         args = json.loads(arguments)
@@ -171,6 +178,7 @@ def chat_warpper(tool_history:list):
                             "content": str(result)
                         })
                     elif tool.function.name == "sql_search":
+                        tool_history.append("sql_search")
                         tool_call = response.tool_calls[0]
                         arguments = tool_call.function.arguments
                         args = json.loads(arguments)
@@ -186,6 +194,7 @@ def chat_warpper(tool_history:list):
                             "content": str(result)
                         })
                     elif tool.function.name == "sql_get_summarized":
+                        tool_history.append("sql_get_summarized")
                         tool_call = response.tool_calls[0]
                         arguments = tool_call.function.arguments
                         args = json.loads(arguments)
@@ -201,6 +210,7 @@ def chat_warpper(tool_history:list):
                             "content": str(result)
                         })
                     elif tool.function.name == "sql_all_summarized":
+                        tool_history.append("sql_all_summarized")
                         result = sql_all_summarized()
                         print("====all Records====")
                         print_json(result)
@@ -211,6 +221,7 @@ def chat_warpper(tool_history:list):
                             "content": str(result)
                         })
                     elif tool.function.name == "rag":
+                        tool_history.append("rag")
                         tool_call = response.tool_calls[0]
                         arguments = tool_call.function.arguments
                         print("====查询内容====")
@@ -237,6 +248,7 @@ def chat_warpper(tool_history:list):
                     #         "content": str(result)
                     #     })
                     elif tool.function.name == "thought_step":
+                        tool_history.append("thought_step")
                         tool_call = response.tool_calls[0]
                         arguments = tool_call.function.arguments
                         print("====思考记录====")
@@ -257,6 +269,7 @@ def chat_warpper(tool_history:list):
                 print_json(chat_history)
                 break
         return chat_history[-1]["content"]
+    return chat
 
 
 latitude = 0
