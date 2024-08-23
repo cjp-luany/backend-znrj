@@ -10,7 +10,7 @@ from pydantic import BaseModel
 from api import RecordItem,run_fastapi2
 from fastapi import Depends, FastAPI, HTTPException, Request, Response
 from fastapi.middleware.cors import CORSMiddleware
-
+import threading 
 # 数据库连接
 # 数据库连接
 CUR_DIR = os.path.realpath(os.path.dirname(__file__))
@@ -55,9 +55,26 @@ def get_completion(messages, model="gpt-4o"):
     )
     return response.choices[0].message
 
+clear_timer = None
+
+def clear_chat_history():
+    global chat_history
+    print("5分钟内无回复，清空聊天记录...")
+    # 只保留system部分
+    chat_history = [{"role": "system", "content": system_message_content}]
+    print("chat_history已清空")
+
+def reset_clear_timer():
+    global clear_timer
+    if clear_timer:
+        clear_timer.cancel()
+    # 5分钟（300秒）后清空聊天记录
+    clear_timer = threading.Timer(300, clear_chat_history)
+    clear_timer.start()
 
 def chat(user_input,latitude,longitude):
     # query_during_chat() # 对话中查询，使用服务器rag
+    reset_clear_timer()
     message = {"role": "user", "content": user_input}
     chat_history.append(message)
     # 调用GPT-4模型

@@ -1,16 +1,28 @@
+# import sys
+# import os
+# current_file_path = __file__  
+# current_dir = os.path.dirname(current_file_path)  
+# parent_dir = os.path.dirname(current_dir)  
+# sys.path.append(parent_dir)  
+# import main_note_ai
 import requests
 import numpy as np
 from tools.tools_general import print_json
 from ENV import tecent_map_api_key
 # tecent_map_api_key = 'ESPBZ-WDHKQ-MBD5P-BWOB2-NZYYV-6EBP4'
 from urllib.parse import quote
-
-
 #======获取当前坐标======
-def get_current_location(latitude, longitude):
+
+def get_current_location():
     """获取经纬度"""
-    current_location = latitude, longitude
-    return current_location
+    response = requests.get("http://127.0.0.1:6202/get_lat_longit/") 
+    # print(response.content)
+    res_json = response.json()
+    if response.status_code == 200:  
+        latitude = res_json[0]
+        longitude = res_json[1]  
+        current_location = latitude, longitude
+        return current_location
 
 
 tool_get_current_location = [{
@@ -34,8 +46,8 @@ tool_get_current_location = [{
 
 
 #======获取当前地点描述======
-def get_current_location_name(latitude, longitude):
-    lat, lng = get_current_location(latitude, longitude)
+def get_current_location_name():
+    lat, lng = get_current_location()
 
     url = "https://apis.map.qq.com/ws/geocoder/v1/?location="
     params = {
@@ -76,8 +88,8 @@ tool_get_current_location_name = [{
 #======获取查询的地点信息======
 
 
-def fetch_location_data(keyword, latitude, longitude):
-    lat, lng = get_current_location(latitude, longitude)
+def fetch_location_data(keyword):
+    lat, lng = get_current_location()
     url = "https://apis.map.qq.com/ws/place/v1/suggestion"
     params = {
         'keyword': keyword,
@@ -129,10 +141,10 @@ def format_location_data(data):
 #         return None
 
 
-def get_location_summary(keyword, latitude, longitude):
+def get_location_summary(keyword):
     # 从 query_msg 中提取关键词和位置信息
     # 假设 query_msg 是一个包含 'keyword' 和 'location' 键的字典
-    data = fetch_location_data(keyword, latitude, longitude)
+    data = fetch_location_data(keyword)
     location_text = format_location_data(data)
     # dispersion = calculate_dispersion(data)
     return f"{location_text}"

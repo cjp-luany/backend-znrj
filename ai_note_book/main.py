@@ -1,30 +1,20 @@
-import os
-import time
 import asyncio
 import json
-import httpx
-import socket
-from flask import Flask, render_template, send_from_directory
+import os
+import time
 from threading import Thread
 
-from openai import OpenAI
-from dotenv import load_dotenv
-from datetime import datetime, timedelta
-from typing import List, AsyncGenerator
-
 import nest_asyncio
-from databases import Database
-from fastapi.middleware.cors import CORSMiddleware
-from fastcrud import crud_router, FastCRUD
-from pydantic import BaseModel
-from sqlalchemy import create_engine, MetaData, Table, desc, text, Column, Integer, String, BigInteger, DateTime
-from sqlalchemy.ext.asyncio import AsyncSession, create_async_engine
-from sqlalchemy.orm import DeclarativeBase, sessionmaker
-
-from fastapi import Depends, FastAPI, HTTPException, Request, Response
 import requests
+from databases import Database
+from dotenv import load_dotenv
+from fastapi import FastAPI
+from fastapi.middleware.cors import CORSMiddleware
+from openai import OpenAI
+from sqlalchemy import create_engine, MetaData, Table, desc
 
 from api import run_fastapi2
+from main_note_ai import run_fastapi3
 
 # 加载当前目录下的 .env 文件
 load_dotenv()
@@ -445,6 +435,9 @@ if __name__ == '__main__':
 
     thread_test = Thread(target=run_fastapi2)
     thread_test.start()
+
+    thread_query = Thread(target=run_fastapi3)
+    thread_query.start()
 
     # start_loop()
 

@@ -1,20 +1,19 @@
 import os
 from sqlalchemy import create_engine, text
-from sqlalchemy.orm import sessionmaker, DeclarativeBase
+from sqlalchemy.orm import sessionmaker
 import requests
 import json
 from typing import List, Dict
 from api import RecordItem, run_fastapi2
 from fastapi import Depends, FastAPI, HTTPException, Request, Response
-from sqlalchemy import create_engine, MetaData, Table, desc, text, Column, Integer, String, BigInteger, DateTime, \
-    Boolean
+# from geoalchemy2 import Geometry
 
 # 数据库连接
-CUR_DIR = os.path.realpath(os.path.dirname(__file__))
+# CUR_DIR = os.path.realpath(os.path.dirname(__file__))
 # PARENT_DIR = os.path.dirname(CUR_DIR)
 # JOIN_DIR = os.path.join(CUR_DIR, "sqlite.db")
 # DATABASE_URL = "sqlite:///" + JOIN_DIR  # 这里的路径应该是你的数据库文件的路径
-# DATABASE_URL = "sqlite:////Users/yuanchaoyi/Documents/Ai项目/ai_note_book v1.0/sqlite.db"
+DATABASE_URL = "sqlite:////Users/yuanchaoyi/Documents/Ai项目/ai_note_book v1.0/sqlite.db"
 SERVER_URL = "47.115.151.97"
 ANYTHINGLLM_TOKEN = "A6WW35F-A6RMWBH-PWRQJV3-5DT5DYS"  # this is server anything llm token
 ISRAG_WORKSPACE_NAME = "israg"
@@ -26,28 +25,6 @@ engine = create_engine(DATABASE_URL, echo=True)
 Session = sessionmaker(bind=engine)
 session = Session()
 api = FastAPI()
-
-
-class Base(DeclarativeBase):
-    pass
-
-
-class RecordItem(Base):
-    __tablename__ = 'record'
-    id = Column(String, primary_key=True)
-    record_time = Column(DateTime)
-    record_location_name = Column(String)
-    record_location = Column(String)
-    target_time = Column(DateTime)
-    target_location_name = Column(String)
-    target_location = Column(String)
-    finish_time = Column(DateTime)
-    wake_time = Column(DateTime)
-    wake_location_name = Column(String)
-    wake_location = Column(String)
-    record_descrpt = Column(String, default="")
-    record_status = Column(Boolean, default=0)
-
 
 # ========================数据库结构========================
 database_schema_string = """
@@ -317,12 +294,10 @@ tool_sql_get_summarized = [{
     }
 }]
 
-
 def sql_all_summarized():
     data_list = fetch_all_records()
     new_data_list = summarize_records(data_list)
     return new_data_list
-
 
 tool_sql_all_summarized = [{
     "type": "function",

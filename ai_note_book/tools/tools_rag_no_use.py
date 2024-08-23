@@ -1,11 +1,11 @@
-from openai import OpenAI
-import numpy as np
-from sklearn.metrics.pairwise import cosine_similarity
 from dotenv import load_dotenv, find_dotenv
+from openai import OpenAI
+from sklearn.metrics.pairwise import cosine_similarity
 
 # 加载环境变量以获取API密钥
 _ = load_dotenv(find_dotenv())
 client = OpenAI()
+
 
 def find_similar_records(document_path, query, similarity_threshold=0.8):
     """
@@ -54,6 +54,7 @@ def find_similar_records(document_path, query, similarity_threshold=0.8):
 
     # 返回所有相似度超过阈值的记录
     return similar_records
+
 
 # 示例调用
 document_path = '/Users/admin/Desktop/projects/llmnotebook/ai_note_book v0.8/output.txt'

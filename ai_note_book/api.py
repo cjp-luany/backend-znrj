@@ -48,6 +48,9 @@ engine = create_async_engine(DATABASE_URL, echo=True)
 async_session = sessionmaker(engine, class_=AsyncSession, expire_on_commit=False)
 
 
+IMAGE_RECOGNITION_SERVER_URL = "http://api.llm.marko1616.com:8000"
+
+
 def python_get_now_timespan():
     return int(time.time())
 
@@ -87,7 +90,8 @@ class RecordItem(Base):
     wake_location = Column(String)
     record_descrpt = Column(String, default="")
     record_status = Column(Boolean, default=0)
-
+    image_descrpt = Column(String, default="")
+    image_id = Column(String, default="")
 
 
 class RecordItemCreateSchema(BaseModel):
@@ -103,6 +107,8 @@ class RecordItemCreateSchema(BaseModel):
     wake_location: str
     record_descrpt: str
     record_status: bool
+    image_descrpt: str
+    image_id: str
 
 
 class RecordItemUpdateSchema(BaseModel):
@@ -118,11 +124,40 @@ class RecordItemUpdateSchema(BaseModel):
     wake_location: str
     record_descrpt: str
     record_status: bool
-
+    image_descrpt: str
+    image_id: str
 
 
 # CRUD operations setup
 crud_record = FastCRUD(RecordItem)
+
+
+class ImageItem(Base):
+    __tablename__ = 'images'
+    id = Column(String, primary_key=True)
+    image_descrpt = Column(String, default="")
+    image_code = Column(String, default="")
+
+
+class ImageItemCreateSchema(BaseModel):
+    id: str
+    image_descrpt: str
+    image_code: str
+
+    def __init__(self, id: str, image_descrpt: str, image_code: str):
+        super().__init__(id=id, image_descrpt=image_descrpt, image_code=image_code)
+
+
+
+
+
+class ImageItemUpdateSchema(BaseModel):
+    image_descrpt: str
+    image_code: str
+
+
+crud_image = FastCRUD(ImageItem)
+
 
 # CRUD router setup
 record_item_router = crud_router(
@@ -292,6 +327,92 @@ async def month_todo_items(year_month:str, db: AsyncSession = Depends(get_sessio
     return {"data": items, "code":200}
 
 
+# 上传图片模型
+class UploadImageItem(BaseModel):
+    img_base64: str
+
+
+@api.post("/uploadOneImage/")
+async def recognize_one_image(item: UploadImageItem, db: AsyncSession = Depends(get_session)):
+    """
+    入参：
+    img_base64 ： base64编码图片，除去data.image base64, 逗号后面的内容
+
+    保存和识别图片
+    1. 上传图片获取图片描述
+    2. 返回id，图片描述
+    3. 存储id，图片描述，编码
+    """
+
+    """=====UUID====="""
+    import uuid
+    _id = uuid.uuid4()
+
+    """=====上传图片获取图片描述====="""
+    # 设置目标 URL
+    url = f'{IMAGE_RECOGNITION_SERVER_URL}/v1/chat/completions'
+
+    # 设置请求头
+    headers = {
+        'accept': 'application/json',
+        'Content-Type': 'application/json'
+    }
+
+    # 设置要发送的数据
+    body = {
+      "model": "string",
+      "messages": [
+        {
+          "role": "user",
+          "content": [
+            {"type": "text", "text": "用中文回答问题，保持回复不超过20字，图片中有什么？"},
+            {
+              "type": "image_url",
+              "image_url": {"url": f"data:image,{item.img_base64}"}
+            }
+          ]
+        }
+      ],
+      "stream": False
+    }
+
+    # 发送 POST 请求
+    try:
+        response = requests.post(url, headers=headers, data=json.dumps(body))
+
+        # 检查返回的状态
+        if response.status_code == 200:
+            print("获取图像识别成功:")
+            print("服务器返回的响应:", response.json())  # 假设响应是 JSON 格式
+
+            """=====存储id，图片描述，编码====="""
+            _image_descrpt = response.json()['choices'][0]['message']['content']
+            new_item = await crud_image.create(db, ImageItemCreateSchema(id=_id.__str__(), image_descrpt=_image_descrpt, image_code=item.img_base64))
+
+            """=====返回id，图片描述====="""
+            return {
+                "code": 200,
+                "data": {
+                    "image_id": new_item.__dict__["id"],
+                    "image_descrpt": new_item.__dict__["image_descrpt"]
+                }
+            }
+        else:
+            print("获取图像识别失败，状态码:", response.status_code)
+            print("响应内容:", response.text)
+
+            return {
+                "code": response.status_code,
+                "data": response.text
+            }
+
+    except requests.exceptions.RequestException as e:
+        print("请求异常:", e)
+
+    return {
+        "code": 500,
+        "data": "请求异常:" + e
+    }
 
 
 # 启动fastapi
