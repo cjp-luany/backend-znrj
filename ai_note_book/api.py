@@ -148,16 +148,12 @@ class ImageItemCreateSchema(BaseModel):
         super().__init__(id=id, image_descrpt=image_descrpt, image_code=image_code)
 
 
-
-
-
 class ImageItemUpdateSchema(BaseModel):
     image_descrpt: str
     image_code: str
 
 
 crud_image = FastCRUD(ImageItem)
-
 
 # CRUD router setup
 record_item_router = crud_router(
@@ -170,6 +166,17 @@ record_item_router = crud_router(
 )
 
 api.include_router(record_item_router)
+
+image_item_router = crud_router(
+    session=get_session,
+    model=ImageItem,
+    create_schema=ImageItemCreateSchema,
+    update_schema=ImageItemUpdateSchema,
+    path="/api/image",
+    tags=["ImageItem"]
+)
+
+api.include_router(image_item_router)
 
 
 def get_week_dates():
