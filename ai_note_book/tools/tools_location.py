@@ -6,11 +6,8 @@
 # sys.path.append(parent_dir)  
 # import main_note_ai
 import requests
-import numpy as np
-from tools.tools_general import print_json
 from ENV import tecent_map_api_key
 # tecent_map_api_key = 'ESPBZ-WDHKQ-MBD5P-BWOB2-NZYYV-6EBP4'
-from urllib.parse import quote
 #======获取当前坐标======
 
 def get_current_location():

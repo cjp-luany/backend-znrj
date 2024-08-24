@@ -4,8 +4,8 @@ from sqlalchemy.orm import sessionmaker
 import requests
 import json
 from typing import List, Dict
-from api import RecordItem, run_fastapi2
-from fastapi import Depends, FastAPI, HTTPException, Request, Response
+from api import RecordItem
+from fastapi import FastAPI
 # from geoalchemy2 import Geometry
 
 # 数据库连接

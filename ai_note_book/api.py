@@ -3,29 +3,22 @@ import calendar
 import os
 import random
 import time
-import asyncio
 import json
-import httpx
-import socket
-from flask import Flask, render_template, send_from_directory
-from threading import Thread
 
-from openai import OpenAI
 from dotenv import load_dotenv
 from datetime import datetime, timedelta, timezone
-from typing import List, AsyncGenerator
+from typing import AsyncGenerator
 
-import nest_asyncio
 from databases import Database
 from fastapi.middleware.cors import CORSMiddleware
 from fastcrud import crud_router, FastCRUD
 from pydantic import BaseModel
-from sqlalchemy import create_engine, MetaData, Table, desc, text, Column, Integer, String, BigInteger, DateTime, \
+from sqlalchemy import Column, String, DateTime, \
     Boolean
 from sqlalchemy.ext.asyncio import AsyncSession, create_async_engine
 from sqlalchemy.orm import DeclarativeBase, sessionmaker
 
-from fastapi import Depends, FastAPI, HTTPException, Request, Response
+from fastapi import Depends, FastAPI
 import requests
 
 # 加载当前目录下的 .env 文件
@@ -421,6 +414,19 @@ async def recognize_one_image(item: UploadImageItem, db: AsyncSession = Depends(
         "code": 500,
         "data": "请求异常:" + e
     }
+
+@api.get("/getImageUUID/")
+async def get_image_from_uuid(uuid:str, db: AsyncSession = Depends(get_session)):
+    try:
+        return {
+            "code": 200,
+            "data": crud_record.get(db, ImageItem.id == uuid)
+        }
+    except:
+        return {
+            "code": 500,
+            "data": f"未找到图片或内部错误"
+        }
 
 
 # 启动fastapi
