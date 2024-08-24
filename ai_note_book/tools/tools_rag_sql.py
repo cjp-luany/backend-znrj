@@ -13,7 +13,7 @@ from fastapi import Depends, FastAPI, HTTPException, Request, Response
 # PARENT_DIR = os.path.dirname(CUR_DIR)
 # JOIN_DIR = os.path.join(CUR_DIR, "sqlite.db")
 # DATABASE_URL = "sqlite:///" + JOIN_DIR  # 这里的路径应该是你的数据库文件的路径
-DATABASE_URL = "sqlite:///D://develop//080724.znrj//ai_note_book//ai_note_book//sqlite.db"
+DATABASE_URL = "sqlite:///C://Users//Administrator//Desktop//ai_note_book//sqlite.db"
 SERVER_URL = "47.115.151.97"
 ANYTHINGLLM_TOKEN = "A6WW35F-A6RMWBH-PWRQJV3-5DT5DYS"  # this is server anything llm token
 ISRAG_WORKSPACE_NAME = "israg"
