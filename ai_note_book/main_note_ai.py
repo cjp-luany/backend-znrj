@@ -73,7 +73,6 @@ def reset_clear_timer():
     clear_timer.start()
 
 def chat_warpper(tool_history:list) -> callable:
-    tool_history = []
     # 处理特定用户的逻辑可以放在这里
     def chat(user_input,latitude,longitude):
         # query_during_chat() # 对话中查询，使用服务器rag
@@ -282,15 +281,31 @@ class Query(BaseModel):
     latitude:str
     longitude:str
 
-tool_historys = {"auser":[]}
+tool_histories = {"TODO:":[]}
 
 @api.get("/now_at")
 def _():
-    return tool_historys[user_id]
+    global tool_histories
+    return tool_histories[user_id]
+
+
+@api.get("/clean_now_at")
+async def _clean_now_at():
+    global tool_histories
+    tool_histories = {"TODO:":[]}
+    return
+
+
+@api.get("/add_image_proc")
+async def _add_image_proc():
+    global tool_histories
+    tool_histories[user_id].append("add_image")
+    return  
+
+
 
 @api.post("/query/")
 def start_loop(query_value:Query):
-    tool_history = []
     # question = "明天早上8点开会"
     query_dic = query_value.dict()
     global latitude
@@ -303,7 +318,8 @@ def start_loop(query_value:Query):
     elif "query" in query_dic:
         latitude = query_dic['latitude']
         longitude = query_dic['longitude']
-        response = chat_warpper(tool_history[user_id])(query_dic["query"],query_dic['latitude'],query_dic['longitude'])
+        tool_histories[user_id] = []
+        response = chat_warpper(tool_histories[user_id])(query_dic["query"],query_dic['latitude'],query_dic['longitude'])
     # Example use
     # print(response)
     return {"Response":response,'code':200}
@@ -322,7 +338,7 @@ def run_fastapi():
 origins = [
 "*",
     "http://127.0.0.1:8102",
-    "http://localhost:8102",
+    "http://localhost:51296",
     "http://127.0.0.1:6102",
     "http://127.0.0.1:6201",
     "http://127.0.0.1:6200"

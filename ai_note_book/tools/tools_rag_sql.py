@@ -4,9 +4,12 @@ from sqlalchemy.orm import sessionmaker
 import requests
 import json
 from typing import List, Dict
-from api import RecordItem
 from fastapi import FastAPI
 # from geoalchemy2 import Geometry
+from sqlalchemy import Column, String, DateTime, \
+    Boolean
+from sqlalchemy.ext.asyncio import AsyncSession, create_async_engine
+from sqlalchemy.orm import DeclarativeBase, sessionmaker
 
 # 数据库连接
 # CUR_DIR = os.path.realpath(os.path.dirname(__file__))
@@ -25,6 +28,31 @@ engine = create_engine(DATABASE_URL, echo=True)
 Session = sessionmaker(bind=engine)
 session = Session()
 api = FastAPI()
+
+
+class Base(DeclarativeBase):
+    pass
+
+
+class RecordItem(Base):
+    __tablename__ = 'record'
+    id = Column(String, primary_key=True)
+    record_time = Column(DateTime)
+    record_location_name = Column(String)
+    record_location = Column(String)
+    target_time = Column(DateTime)
+    target_location_name = Column(String)
+    target_location = Column(String)
+    finish_time = Column(DateTime)
+    wake_time = Column(DateTime)
+    wake_location_name = Column(String)
+    wake_location = Column(String)
+    record_descrpt = Column(String, default="")
+    record_status = Column(Boolean, default=0)
+    image_descrpt = Column(String, default="")
+    image_id = Column(String, default="")
+
+
 
 # ========================数据库结构========================
 database_schema_string = """

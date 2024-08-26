@@ -332,6 +332,7 @@ async def month_todo_items(year_month:str, db: AsyncSession = Depends(get_sessio
 class UploadImageItem(BaseModel):
     img_base64: str
 
+
 @api.post("/uploadOneImage/")
 async def recognize_one_image(item: UploadImageItem, db: AsyncSession = Depends(get_session)):
     """
@@ -344,90 +345,75 @@ async def recognize_one_image(item: UploadImageItem, db: AsyncSession = Depends(
     3. 存储id，图片描述，编码
     """
 
+    """=====UUID====="""
     import uuid
-    import requests
-    import json
-    from sqlalchemy.ext.asyncio import AsyncSession
-    from fastapi import Depends
-    from pydantic import BaseModel
-
-    class UploadImageItem(BaseModel):
-        img_base64: str
-
     _id = uuid.uuid4()
 
+    """=====上传图片获取图片描述====="""
+    # 设置目标 URL
     url = f'{IMAGE_RECOGNITION_SERVER_URL}/v1/chat/completions'
 
+    # 设置请求头
     headers = {
         'accept': 'application/json',
         'Content-Type': 'application/json'
     }
 
+    # 设置要发送的数据
     body = {
-        "model": "string",
-        "messages": [
+      "model": "string",
+      "messages": [
+        {
+          "role": "user",
+          "content": [
+            {"type": "text", "text": "用中文回答问题，保持回复不超过20字，图片中有什么？"},
             {
-                "role": "user",
-                "content": [
-                    {"type": "text", "text": "用中文回答问题，保持回复不超过20字，图片中有什么？"},
-                    {
-                        "type": "image_url",
-                        "image_url": {"url": f"data:image,{item.img_base64}"}
-                    }
-                ]
+              "type": "image_url",
+              "image_url": {"url": f"data:image,{item.img_base64}"}
             }
-        ]
+          ]
+        }
+      ],
+      "stream": False
     }
 
+    # 发送 POST 请求
     try:
-        # 设置超时时间为30秒
-        response = requests.post(url, headers=headers, data=json.dumps(body), timeout=60)
+        response = requests.post(url, headers=headers, data=json.dumps(body))
 
-        response.raise_for_status()
+        # 检查返回的状态
+        if response.status_code == 200:
+            print("获取图像识别成功:")
+            print("服务器返回的响应:", response.json())  # 假设响应是 JSON 格式
 
-        print("获取图像识别成功:")
-        print("服务器返回的响应:", response.json())
+            """=====存储id，图片描述，编码====="""
+            _image_descrpt = response.json()['choices'][0]['message']['content']
+            new_item = await crud_image.create(db, ImageItemCreateSchema(id=_id.__str__(), image_descrpt=_image_descrpt, image_code=item.img_base64))
 
-        _image_descrpt = response.json()['choices'][0]['message']['content']
-        
-        new_item = await crud_image.create(db, ImageItemCreateSchema(id=_id.__str__(), image_descrpt=_image_descrpt,
-                                                                     image_code=item.img_base64))
-
-        return {
-            "code": 200,
-            "data": {
-                "image_id": new_item.__dict__["id"],
-                "image_descrpt": new_item.__dict__["image_descrpt"]
-            }
-        }
-
-    except requests.exceptions.RequestException as req_error:
-        if isinstance(req_error, (requests.exceptions.ConnectionError, requests.exceptions.Timeout)):
-            print("网络连接错误:", req_error)
+            """=====返回id，图片描述====="""
             return {
-                "code": 500,
-                "data": "网络连接错误，请稍后重试"
+                "code": 200,
+                "data": {
+                    "image_id": new_item.__dict__["id"],
+                    "image_descrpt": new_item.__dict__["image_descrpt"]
+                }
             }
         else:
-            print("请求异常:", req_error)
+            print("获取图像识别失败，状态码:", response.status_code)
+            print("响应内容:", response.text)
+
             return {
-                "code": 500,
-                "data": "请求异常，请稍后重试"
+                "code": response.status_code,
+                "data": response.text
             }
-    except KeyError as e:
-        print("响应解析失败:", e)
-        return {
-            "code": 500,
-            "data": "无法解析服务器返回的响应"
-        }
-    except Exception as e:
-        print("发生错误:", e)
-        return {
-            "code": 500,
-            "data": "发生未知错误"
-        }
 
+    except requests.exceptions.RequestException as e:
+        print("请求异常:", e)
 
+    return {
+        "code": 500,
+        "data": "请求异常:" + e
+    }
 
 @api.get("/getImageUUID/")
 async def get_image_from_uuid(uuid:str, db: AsyncSession = Depends(get_session)):
