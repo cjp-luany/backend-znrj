@@ -11,6 +11,7 @@ from api import run_fastapi2
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 import threading 
+from flask import Flask, render_template,send_from_directory
 # 数据库连接
 # 数据库连接
 CUR_DIR = os.path.realpath(os.path.dirname(__file__))
@@ -362,6 +363,29 @@ api.add_middleware(
     allow_headers=["*"],
 )
 
+
+
+'''
+是否使用flask
+'''
+# 创建flask实例，指定静态文件夹
+app = Flask(__name__,
+            static_folder=os.path.join(CUR_DIR, 'static'),
+            template_folder=os.path.join(CUR_DIR, 'templates'))
+# 启动flask
+def run_flask():
+    app.run(host='0.0.0.0', port=6200)
+
+# 路由控制
+@app.route('/', defaults={'path': ''})
+@app.route('/<path:path>')
+def serve(path):
+    if path != "" and os.path.exists(app.static_folder + '/' + path):
+        return send_from_directory(app.static_folder, path)
+    else:
+        return send_from_directory(app.static_folder, 'index.html')
+
+
 # =====================console测试=======================
 if __name__ == '__main__':
     # Accept command line input and output results
@@ -400,4 +424,7 @@ if __name__ == '__main__':
 #
     thread_test = Thread(target=run_fastapi2)
     thread_test.start()
+
+    thread_flask = Thread(target=run_flask)
+    thread_flask.start()
 # =====================连前端=======================

@@ -7,3 +7,7 @@ ai_note_book/.vscode
 __pycache__/
 
 *.DS_Store
+
+ai_note_book/static/assets/
+ai_note_book/static/icons/
+ai_note_book/static/canvaskit/
