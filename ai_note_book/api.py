@@ -356,23 +356,35 @@ async def recognize_one_image(item: UploadImageItem, db: AsyncSession = Depends(
 
     _id = uuid.uuid4()
 
-    url = f'{IMAGE_RECOGNITION_SERVER_URL}/v1/chat/completions'
+    _old_url = f'{IMAGE_RECOGNITION_SERVER_URL}/v1/chat/completions'
 
+    url = 'https://api.gptapi.us/v1/messages'
+
+    # add code here : auth x-api-key: aaa
     headers = {
         'accept': 'application/json',
-        'Content-Type': 'application/json'
+        'Content-Type': 'application/json',
+        'x-api-key':'sk-yyVoHd34C4cheQLRAeB6B8C337F946Ed8629A0D7F402E6C'
     }
 
     body = {
-        "model": "string",
-        "messages": [
+    "model": "claude-3-5-sonnet-20240620",
+    "max_tokens": 4096,
+    "messages": [
             {
                 "role": "user",
                 "content": [
-                    {"type": "text", "text": "用中文回答问题，保持回复不超过20字，图片中有什么？"},
                     {
-                        "type": "image_url",
-                        "image_url": {"url": f"data:image,{item.img_base64}"}
+                        "type": "image",
+                        "source": {
+                            "type": "base64",
+                            "media_type": "image/png",
+                            "data": item.img_base64
+                        }
+                    },
+                    {
+                        "type": "text",
+                        "text": "这张图里有什么，用中文回答，少于25字"
                     }
                 ]
             }
@@ -388,7 +400,9 @@ async def recognize_one_image(item: UploadImageItem, db: AsyncSession = Depends(
         print("获取图像识别成功:")
         print("服务器返回的响应:", response.json())
 
-        _image_descrpt = response.json()['choices'][0]['message']['content']
+        # _image_descrpt = response.json()['choices'][0]['message']['content']
+    
+        _image_descrpt = response.json()['content'][0]['text']
         
         new_item = await crud_image.create(db, ImageItemCreateSchema(id=_id.__str__(), image_descrpt=_image_descrpt,
                                                                      image_code=item.img_base64))
