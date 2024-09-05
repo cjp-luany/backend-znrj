@@ -11,12 +11,33 @@ from sqlalchemy import Column, String, DateTime, \
 from sqlalchemy.ext.asyncio import AsyncSession, create_async_engine
 from sqlalchemy.orm import DeclarativeBase, sessionmaker
 
+
+def get_sqlite_db_path(db_name='sqlite.db'):
+    """
+    获取当前目录上一级目录下的 SQLite 数据库文件路径。
+
+    :param db_name: 数据库文件名，默认为 'sqlite.db'
+    :return: SQLite 数据库文件的完整路径
+    """
+    # 获取当前工作目录
+    current_directory = os.getcwd()
+
+    # 获取上一级目录
+    parent_directory = os.path.dirname(current_directory)
+
+    # 构建数据库文件的路径
+    sqlite_db_path = os.path.join(parent_directory, db_name)
+
+    return sqlite_db_path
+
+
+
 # 数据库连接
 # CUR_DIR = os.path.realpath(os.path.dirname(__file__))
 # PARENT_DIR = os.path.dirname(CUR_DIR)
 # JOIN_DIR = os.path.join(CUR_DIR, "sqlite.db")
 # DATABASE_URL = "sqlite:///" + JOIN_DIR  # 这里的路径应该是你的数据库文件的路径
-DATABASE_URL = "sqlite:///C://Users//Administrator//Desktop//ai_note_book//sqlite.db"
+DATABASE_URL = "sqlite:///" + get_sqlite_db_path()
 SERVER_URL = "47.115.151.97"
 ANYTHINGLLM_TOKEN = "A6WW35F-A6RMWBH-PWRQJV3-5DT5DYS"  # this is server anything llm token
 ISRAG_WORKSPACE_NAME = "israg"
@@ -28,6 +49,11 @@ engine = create_engine(DATABASE_URL, echo=True)
 Session = sessionmaker(bind=engine)
 session = Session()
 api = FastAPI()
+
+
+
+
+
 
 
 class Base(DeclarativeBase):
