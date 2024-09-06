@@ -1,0 +1,15 @@
+flask
+pygments
+fastapi
+pydantic
+sqlalchemy
+databases
+aiosqlite
+flask-sqlalchemy
+flask-marshmallow
+marshmallow-sqlalchemy
+uvicorn
+python-dotenv
+fastcrud
+openai
+requests
