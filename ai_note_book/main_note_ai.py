@@ -12,6 +12,8 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 import threading 
 from flask import Flask, render_template,send_from_directory
+
+
 # 数据库连接
 # 数据库连接
 CUR_DIR = os.path.realpath(os.path.dirname(__file__))
