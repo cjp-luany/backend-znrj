@@ -11,7 +11,6 @@ from sqlalchemy import Column, String, DateTime, \
 from sqlalchemy.ext.asyncio import AsyncSession, create_async_engine
 from sqlalchemy.orm import DeclarativeBase, sessionmaker
 
-
 def get_sqlite_db_path(db_name='sqlite.db'):
     """
     获取当前目录上一级目录下的 SQLite 数据库文件路径。
@@ -31,13 +30,12 @@ def get_sqlite_db_path(db_name='sqlite.db'):
     return sqlite_db_path
 
 
-
 # 数据库连接
-# CUR_DIR = os.path.realpath(os.path.dirname(__file__))
-# PARENT_DIR = os.path.dirname(CUR_DIR)
-# JOIN_DIR = os.path.join(CUR_DIR, "sqlite.db")
+CUR_DIR = os.path.realpath(os.path.dirname(__file__))
+PARENT_DIR = os.path.dirname(CUR_DIR)
+JOIN_DIR = os.path.join(PARENT_DIR, "sqlite.db")
 # DATABASE_URL = "sqlite:///" + JOIN_DIR  # 这里的路径应该是你的数据库文件的路径
-DATABASE_URL = "sqlite:///" + get_sqlite_db_path()
+DATABASE_URL = f"sqlite:///{JOIN_DIR}"
 SERVER_URL = "47.115.151.97"
 ANYTHINGLLM_TOKEN = "A6WW35F-A6RMWBH-PWRQJV3-5DT5DYS"  # this is server anything llm token
 ISRAG_WORKSPACE_NAME = "israg"
