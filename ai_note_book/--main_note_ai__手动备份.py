@@ -1,7 +1,7 @@
 from openai import OpenAI
 from dotenv import load_dotenv, find_dotenv
 from tools.tools_general import *
-from tools.tools_rag_sql import *
+from tools.tools_sql_operate import *
 from tools.tools_thought import *
 from tools.tools_location import *
 import uvicorn

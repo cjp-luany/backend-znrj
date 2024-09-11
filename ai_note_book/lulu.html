@@ -1,0 +1,268 @@
+<html>
+<head>
+<base href="https://app.chat.example.com/">
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>简约聊天应用</title>
+<style>
+  body, html {
+    margin: 0;
+    padding: 0;
+    font-family: 'Helvetica Neue', Arial, sans-serif;
+    height: 100%;
+    background-color: #f7f9fc;
+  }
+  .app-container {
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+    max-width: 500px;
+    margin: 0 auto;
+    background-color: #ffffff;
+    box-shadow: 0 0 20px rgba(0, 0, 0, 0.05);
+  }
+  .chat-history {
+    flex: 1;
+    overflow-y: auto;
+    padding: 20px;
+    display: flex;
+    flex-direction: column;
+  }
+  .input-area {
+    display: flex;
+    padding: 15px;
+    background-color: #f0f4f8;
+    border-top: 1px solid #e0e4e8;
+  }
+  #message-input {
+    flex: 1;
+    padding: 12px;
+    border: none;
+    border-radius: 20px;
+    background-color: #ffffff;
+    font-size: 16px;
+    outline: none;
+    transition: box-shadow 0.3s ease;
+  }
+  #message-input:focus {
+    box-shadow: 0 0 0 2px #4a90e2;
+  }
+  .btn {
+    background-color: transparent;
+    border: none;
+    color: #4a90e2;
+    padding: 10px;
+    text-align: center;
+    text-decoration: none;
+    display: inline-block;
+    font-size: 16px;
+    margin: 0 5px;
+    cursor: pointer;
+    border-radius: 50%;
+    transition: background-color 0.3s ease;
+  }
+  .btn:hover {
+    background-color: rgba(74, 144, 226, 0.1);
+  }
+  .message-group {
+    display: flex;
+    margin-bottom: 15px;
+    align-items: flex-start;
+  }
+  .message-container {
+    display: flex;
+    flex-direction: column;
+    max-width: 75%;
+  }
+  .message {
+    padding: 10px 15px;
+    border-radius: 18px;
+    font-size: 16px;
+    line-height: 1.4;
+    word-wrap: break-word;
+    margin-bottom: 5px;
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
+  }
+  .sent {
+    justify-content: flex-end;
+  }
+  .received {
+    justify-content: flex-start;
+  }
+  .sent .message {
+    background-color: #4a90e2;
+    color: #ffffff;
+    align-self: flex-end;
+  }
+  .received .message {
+    background-color: #f0f4f8;
+    color: #333333;
+    align-self: flex-start;
+  }
+  .message img {
+    max-width: 100%;
+    border-radius: 12px;
+    margin-top: 5px;
+  }
+  .avatar {
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
+    background-size: cover;
+    background-position: center;
+    flex-shrink: 0;
+  }
+  .sent .avatar {
+    order: 1;
+    margin-left: 10px;
+  }
+  .received .avatar {
+    margin-right: 10px;
+  }
+</style>
+</head>
+<body>
+<div class="app-container">
+  <div class="chat-history" id="chat-history">
+    <!-- 聊天记录将在这里动态添加 -->
+  </div>
+  <div class="input-area">
+    <input type="text" id="message-input" placeholder="输入消息...">
+    <button class="btn" id="photo-btn">
+      <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <rect x="3" y="3" width="18" height="18" rx="2" ry="2"/>
+        <circle cx="8.5" cy="8.5" r="1.5"/>
+        <polyline points="21 15 16 10 5 21"/>
+      </svg>
+    </button>
+    <button class="btn" id="voice-btn">
+      <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/>
+        <path d="M19 10v2a7 7 0 0 1-14 0v-2"/>
+        <line x1="12" y1="19" x2="12" y2="23"/>
+        <line x1="8" y1="23" x2="16" y2="23"/>
+      </svg>
+    </button>
+  </div>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', (event) => {
+  const chatHistory = document.getElementById('chat-history');
+  const messageInput = document.getElementById('message-input');
+  const photoBtn = document.getElementById('photo-btn');
+  const voiceBtn = document.getElementById('voice-btn');
+
+  let isVoiceMode = false;
+  let lastMessageSender = null;
+
+  const userAvatar = "https://api.dicebear.com/6.x/avataaars/svg?seed=user&backgroundColor=4a90e2";
+  const botAvatar = "https://api.dicebear.com/6.x/bottts/svg?seed=bot&backgroundColor=f0f4f8";
+
+  function addMessage(content, isSent) {
+    const sender = isSent ? 'user' : 'bot';
+
+    if (sender !== lastMessageSender) {
+      const messageGroup = document.createElement('div');
+      messageGroup.classList.add('message-group');
+      messageGroup.classList.add(isSent ? 'sent' : 'received');
+
+      const avatar = document.createElement('div');
+      avatar.classList.add('avatar');
+      avatar.style.backgroundImage = `url('${isSent ? userAvatar : botAvatar}')`;
+
+      const messageContainer = document.createElement('div');
+      messageContainer.classList.add('message-container');
+
+      if (isSent) {
+        messageGroup.appendChild(messageContainer);
+        messageGroup.appendChild(avatar);
+      } else {
+        messageGroup.appendChild(avatar);
+        messageGroup.appendChild(messageContainer);
+      }
+
+      chatHistory.appendChild(messageGroup);
+      lastMessageSender = sender;
+    }
+
+    const messageDiv = document.createElement('div');
+    messageDiv.classList.add('message');
+    messageDiv.style.whiteSpace = 'pre-wrap'; // 保留换行符
+    messageDiv.innerHTML = content;
+
+    const lastMessageGroup = chatHistory.lastElementChild;
+    lastMessageGroup.querySelector('.message-container').appendChild(messageDiv);
+
+    chatHistory.scrollTop = chatHistory.scrollHeight;
+  }
+
+  messageInput.addEventListener('keypress', function(e) {
+    if (e.key === 'Enter' && !e.shiftKey) {
+      e.preventDefault();
+      const message = this.value.trim();
+      if (message) {
+        addMessage(message, true);
+        this.value = '';
+
+        // 发送消息到后端
+        fetch('http://127.0.0.1:6202/query/', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+                query: message,
+                latitude: '29.533416',  // 示例：你可以将实际值传递给后端
+                longitude: '106.56795',  // 示例：你可以将实际值传递给后端
+                user_id: '3f2c2df0-9c9a-4c7f-bf02-3ed8efc61dbf'  // 传递 user_id
+            }),
+        })
+        .then(response => response.json())
+        .then(data => {
+            // 显示后端的响应
+            addMessage(data.Response, false);  // 假设后端返回的字段是 'Response'
+        })
+        .catch((error) => {
+            console.error('Error:', error);
+        });
+      }
+    }
+  });
+
+  photoBtn.addEventListener('click', function() {
+    const input = document.createElement('input');
+    input.type = 'file';
+    input.accept = 'image/*';
+    input.onchange = e => {
+      const file = e.target.files[0];
+      const reader = new FileReader();
+      reader.onload = function(event) {
+        const img = `<img src="${event.target.result}" alt="用户上传的图片">`;
+        addMessage(img, true);
+      }
+      reader.readAsDataURL(file);
+    }
+    input.click();
+  });
+
+  voiceBtn.addEventListener('click', function() {
+    isVoiceMode = !isVoiceMode;
+    if (isVoiceMode) {
+      messageInput.placeholder = '点击说话...';
+      this.style.color = '#ff4081';
+    } else {
+      messageInput.placeholder = '输入消息...';
+      this.style.color = '#4a90e2';
+    }
+  });
+
+  // 模拟对话
+  setTimeout(() => {
+    addMessage('嗨！欢迎使用我们的简约聊天应用。', false);
+  }, 1000);
+});
+</script>
+
+</body>
+</html>
