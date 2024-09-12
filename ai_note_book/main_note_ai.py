@@ -1,3 +1,6 @@
+import asyncio
+from functools import partial
+
 from openai import OpenAI
 from dotenv import load_dotenv, find_dotenv
 from tools.tools_general import *
@@ -13,6 +16,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 import threading 
 from flask import Flask, render_template, send_from_directory
+import httpx
 
 
 # 数据库连接
@@ -60,6 +64,79 @@ def reset_clear_timer(user_id):
         chat_histories[user_id]['timer'] = threading.Timer(300, clear_chat_history, args=[user_id])
         chat_histories[user_id]['timer'].start()
 
+
+async def call_api(url: str, params: dict = None, headers: dict = None, callback=None, *callback_args):
+    try:
+        async with httpx.AsyncClient() as client:
+            response = await client.post(url, params=params, headers=headers)
+
+            # 检查响应状态码
+            response.raise_for_status()  # 如果响应状态码不是 200，将引发异常
+
+            # 解析 JSON 响应
+            result = response.json()
+
+            # 如果提供了回调函数，则调用它并传入结果和额外参数
+            if callback:
+                callback(result, *callback_args)
+
+    except httpx.HTTPStatusError as e:
+        print(f"HTTP error occurred: {e.response.status_code} - {e.response.text}")
+    except Exception as e:
+        print(f"An error occurred: {str(e)}")
+
+
+# 示例回调函数
+def handle_result(result, extra_param1):
+    print("API call successful. Result:")
+    print(result)
+    chat_histories[user_id]["chat_history"].append({
+        "tool_call_id": extra_param1,  # tool.id
+        "role": "tool",
+        "name": "sql_insert",
+        "content": str(result)
+    })
+
+
+def api_operation(tool_id: str, _user_id: str, operation: str, *args):
+    if operation == '':
+        return
+
+    elif operation == 'sql_insert':
+        try:
+            url = "http://127.0.0.1:6201/api/record/create"
+            args.__dict__['user_id'] = user_id
+            headers = {"Content-Type": "application/json"}
+            callback_with_args = partial(handle_result, extra_param1=tool_id)
+            loop = asyncio.get_event_loop()
+            loop.run_until_complete(call_api(url, params=args, headers=headers, callback=callback_with_args))
+            return
+
+        except Exception as e:
+            print(f"Error sql_insert: {str(e)}")
+            return
+
+    elif operation == 'sql_update':
+        try:
+            url = f"http://127.0.0.1:6201/api/record/update/{args['id']}"
+            headers = {"Content-Type": "application/json"}
+            callback_with_args = partial(handle_result, extra_param1=tool_id)
+            loop = asyncio.get_event_loop()
+            loop.run_until_complete(call_api(url, params=args, headers=headers, callback=callback_with_args))
+            return
+        except Exception as e:
+            print(f"Error sql_update: {str(e)}")
+            return
+
+    elif operation == 'sql_search':
+
+        return
+
+    else:
+        return
+
+
+
 def chat_warpper(user_id):
     if user_id not in chat_histories:
         chat_histories[user_id] = {
@@ -89,6 +166,14 @@ def chat_warpper(user_id):
                         args = json.loads(arguments)
                         print(f"{user_id}====SQL INSERT====")
                         print(args)
+                        """ TODO: 对args 执行数据库操作，用api"""
+
+                        """ =========== 修改内容 ==============="""
+                        api_operation(tool.id, user_id, 'sql_insert', *args)
+                        """ =========== 修改内容 ==============="""
+                        # 下面可以注释
+
+
                         result = sql_insert(
                             record_cls=args["record_cls"],
                             target_time=args["target_time"],
