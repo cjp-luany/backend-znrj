@@ -2,6 +2,7 @@ from dotenv import load_dotenv, find_dotenv
 from openai import OpenAI
 from sklearn.metrics.pairwise import cosine_similarity
 
+
 # 加载环境变量以获取API密钥
 _ = load_dotenv(find_dotenv())
 client = OpenAI()
@@ -30,7 +31,7 @@ def find_similar_records(document_path, query, similarity_threshold=0.8):
     document_embeddings = []
     for text in document_texts:
         response = client.embeddings.create(
-            model="text-embedding-3-large",
+            model="text-embedding-v3",
             input=text
         )
         embedding = response.data[0].embedding
@@ -38,7 +39,7 @@ def find_similar_records(document_path, query, similarity_threshold=0.8):
 
     # 为用户的问题生成嵌入向量
     query_response = client.embeddings.create(
-        model="text-embedding-3-large",
+        model="text-embedding-v3",
         input=query
     )
     query_embedding = query_response.data[0].embedding
@@ -57,9 +58,9 @@ def find_similar_records(document_path, query, similarity_threshold=0.8):
 
 
 # 示例调用
-document_path = '/Users/admin/Desktop/projects/llmnotebook/ai_note_book v0.8/output.txt'
-query = "我有没有关于市场部的会议记录？"
-similarity_threshold = 0.3  # 设定一个相似度阈值
+document_path = '/Users/admin/Desktop/projects/qianwennotebook/git/ai_note_book/output.txt'
+query = "东东"
+similarity_threshold = 0.8  # 设定一个相似度阈值
 results = find_similar_records(document_path, query, similarity_threshold)
 
 if results:

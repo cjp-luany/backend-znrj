@@ -70,29 +70,54 @@ class Base(DeclarativeBase):
     pass
 
 
+class UserItem(Base):
+    __tablename__ = 'user_data'
+    user_id = Column(String, primary_key=True)
+    user_creation_time = Column(DateTime)
+    user_name = Column(String)
+    user_phone = Column(String)
+    user_status = Column(Boolean)
+
+class UserItemCreateSchema(BaseModel):
+    user_id : str
+    user_creation_time : datetime
+    user_name : str
+    user_phone : str
+    user_status : bool
+
+class UserItemUpdateSchema(BaseModel):
+    user_id : str
+    user_creation_time : datetime
+    user_name : str
+    user_phone : str
+    user_status : bool
+
 class RecordItem(Base):
     __tablename__ = 'record'
     id = Column(String, primary_key=True)
     record_time = Column(DateTime)
     record_location_name = Column(String)
     record_location = Column(String)
-    target_time = Column(DateTime)
-    target_location_name = Column(String)
-    target_location = Column(String)
-    finish_time = Column(DateTime)
-    wake_time = Column(DateTime)
-    wake_location_name = Column(String)
-    wake_location = Column(String)
+    record_cls = Column(String, nullable=True)
+    target_time = Column(DateTime, nullable=True)
+    target_location_name = Column(String, nullable=True)
+    target_location = Column(String, nullable=True)
+    finish_time = Column(DateTime, nullable=True)
+    wake_time = Column(DateTime, nullable=True)
+    wake_location_name = Column(String, nullable=True)
+    wake_location = Column(String, nullable=True)
     record_descrpt = Column(String, default="")
     record_status = Column(Boolean, default=0)
-    image_descrpt = Column(String, default="")
-    image_id = Column(String, default="")
+    image_descrpt = Column(String, default="", nullable=True)
+    image_id = Column(String, default="", nullable=True)
+    user_id = Column(String)
 
 
 class RecordItemCreateSchema(BaseModel):
     record_time: datetime
     record_location_name: str
     record_location: str
+    record_cls: str
     target_time: datetime
     target_location_name: str
     target_location: str
@@ -104,12 +129,14 @@ class RecordItemCreateSchema(BaseModel):
     record_status: bool
     image_descrpt: str
     image_id: str
+    user_id: str
 
 
 class RecordItemUpdateSchema(BaseModel):
     record_time: datetime
     record_location_name: str
     record_location: str
+    record_cls: str
     target_time: datetime
     target_location_name: str
     target_location: str
@@ -121,6 +148,8 @@ class RecordItemUpdateSchema(BaseModel):
     record_status: bool
     image_descrpt: str
     image_id: str
+    user_id: str
+
 
 
 # CRUD operations setup
@@ -132,6 +161,7 @@ class ImageItem(Base):
     id = Column(String, primary_key=True)
     image_descrpt = Column(String, default="")
     image_code = Column(String, default="")
+
 
 
 class ImageItemCreateSchema(BaseModel):
@@ -149,6 +179,9 @@ class ImageItemUpdateSchema(BaseModel):
 
 
 crud_image = FastCRUD(ImageItem)
+
+
+
 
 # CRUD router setup
 record_item_router = crud_router(
@@ -622,4 +655,3 @@ api.add_middleware(
 #     if not item:
 #         raise HTTPException(status_code=404, detail="Item not found")
 #     return item
-

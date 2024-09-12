@@ -26,7 +26,7 @@ tool_get_current_location = [{
     "type": "function",
     "function": {
         "name": "get_current_location",
-        "description": "获取当前位置经纬度",
+        "description": "获取当前位置信息的经纬度",
         "parameters": {
             "type": "object",
             "properties": {
@@ -158,13 +158,13 @@ tool_get_location_summary = [{
     "type": "function",
     "function": {
         "name": "get_location_summary",
-        "description": "查询目标位置信息，只传入查询地点的文本",
+        "description": "查询位置信息，只传入地点描述的文本，不要传入任何其他参数。该工具已封装了用户位置信息，你无需额外获取。",
         "parameters": {
             "type": "object",
             "properties": {
                 "query_msg": {
                     "type": "string",
-                    "description": "将用户查询的地点文本信息传入",
+                    "description": "将用户查询的地点的描述文本传入",
                 },
             },
             "required": ["query_msg"],
