@@ -87,11 +87,11 @@ async def call_api(url: str, params: dict = None, headers: dict = None, callback
 
 
 # 示例回调函数
-def handle_result(result, extra_param1):
+def handle_result(result, extra_param_tool_id,extra_param_user_id):
     print("API call successful. Result:")
     print(result)
-    chat_histories[user_id]["chat_history"].append({
-        "tool_call_id": extra_param1,  # tool.id
+    chat_histories[extra_param_user_id]["chat_history"].append({
+        "tool_call_id": extra_param_tool_id,  # tool.id
         "role": "tool",
         "name": "sql_insert",
         "content": str(result)
@@ -107,7 +107,7 @@ def api_operation(tool_id: str, _user_id: str, operation: str, *args):
             url = "http://127.0.0.1:6201/api/record/create"
             args.__dict__['user_id'] = user_id
             headers = {"Content-Type": "application/json"}
-            callback_with_args = partial(handle_result, extra_param1=tool_id)
+            callback_with_args = partial(handle_result,extra_param_tool_id=tool_id, extra_param_user_id=_user_id)
             loop = asyncio.get_event_loop()
             loop.run_until_complete(call_api(url, params=args, headers=headers, callback=callback_with_args))
             return
@@ -120,7 +120,7 @@ def api_operation(tool_id: str, _user_id: str, operation: str, *args):
         try:
             url = f"http://127.0.0.1:6201/api/record/update/{args['id']}"
             headers = {"Content-Type": "application/json"}
-            callback_with_args = partial(handle_result, extra_param1=tool_id)
+            callback_with_args = partial(handle_result, extra_param_tool_id=tool_id,extra_param_user_id=_user_id)
             loop = asyncio.get_event_loop()
             loop.run_until_complete(call_api(url, params=args, headers=headers, callback=callback_with_args))
             return
