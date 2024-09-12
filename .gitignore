@@ -13,3 +13,5 @@ ai_note_book/static/icons/
 ai_note_book/static/canvaskit/
 *.wav
 *.mp3
+
+.idea
