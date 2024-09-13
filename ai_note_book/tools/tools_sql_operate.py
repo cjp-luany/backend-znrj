@@ -50,8 +50,8 @@ import requests
 import uuid
 from sqlalchemy import text
 
-def sql_insert(target_time, target_location_name, target_location, finish_time, wake_time, wake_location_name,
-               wake_location, record_descrpt, record_status, image_descrpt, image_id, record_cls):
+def sql_insert(target_time, finish_time, wake_time,
+               record_descrpt, record_status, image_descrpt, image_id, record_cls):
     """插入一条新的记录到数据库中"""
 
     # 从 API 获取 user_id
@@ -74,17 +74,13 @@ def sql_insert(target_time, target_location_name, target_location, finish_time, 
     # 构建SQL插入语句
     query = f"""
     INSERT INTO record (
-        id, 
+        record_id, 
         record_time, 
         record_location_name, 
         record_location, 
         target_time, 
-        target_location_name, 
-        target_location, 
         finish_time, 
         wake_time, 
-        wake_location_name, 
-        wake_location, 
         record_descrpt, 
         record_status, 
         image_descrpt, 
@@ -97,14 +93,10 @@ def sql_insert(target_time, target_location_name, target_location, finish_time, 
         '{record_location_name}', 
         '{record_location_str}', 
         {f"'{target_time}'" if target_time else "NULL"}, 
-        {f"'{target_location_name}'" if target_location_name else "NULL"}, 
-        {f"'{target_location}'" if target_location else "NULL"}, 
         {f"'{finish_time}'" if finish_time else "NULL"}, 
         {f"'{wake_time}'" if wake_time else "NULL"}, 
-        {f"'{wake_location_name}'" if wake_location_name else "NULL"}, 
-        {f"'{wake_location}'" if wake_location else "NULL"}, 
         '{record_descrpt}', 
-        {1 if record_status else 0}, 
+        {f"'{record_status}'" if record_status else "NULL"}, 
         {f"'{image_descrpt}'" if image_descrpt else "NULL"}, 
         {f"'{image_id}'" if image_id else "NULL"}, 
         {f"'{record_cls}'" if record_cls else "NULL"}, 
@@ -115,7 +107,7 @@ def sql_insert(target_time, target_location_name, target_location, finish_time, 
     # 执行SQL插入操作
     session.execute(text(query))
     session.commit()
-    return "记录已成功插入"
+    return f"记录已成功插入,record_id为{unique_id}"
 
 # 工具封装
 tool_sql_insert = [{
@@ -130,14 +122,6 @@ tool_sql_insert = [{
                     "type": "string",
                     "description": "[目标时间]，格式DateTime为 'YYYY-MM-DD HH:MM:SS'，如果无相关信息，则为空值。"
                 },
-                "target_location_name": {
-                    "type": "string",
-                    "description": "目标地点名称，如果无相关信息，则为空值。"
-                },
-                "target_location": {
-                    "type": "string",
-                    "description": "目标地点的地理坐标（如经纬度），如果无相关信息，则为空值。"
-                },
                 "finish_time": {
                     "type": "string",
                     "description": "[结束时间]，格式DateTime为 'YYYY-MM-DD HH:MM:SS'，如果无相关信息，则为空值。"
@@ -146,21 +130,13 @@ tool_sql_insert = [{
                     "type": "string",
                     "description": "[提醒时间]，格式DateTime为 'YYYY-MM-DD HH:MM:SS'，如果无相关信息，则为空值。"
                 },
-                "wake_location_name": {
-                    "type": "string",
-                    "description": "提醒地点名称，如果无相关信息，则为空值。"
-                },
-                "wake_location": {
-                    "type": "string",
-                    "description": "提醒地点的地理坐标（如经纬度），如果无相关信息，则为空值。"
-                },
                 "record_descrpt": {
                     "type": "string",
                     "description": "[事件总结]"
                 },
                 "record_status": {
-                    "type": "boolean",
-                    "description": "[事件状态]"
+                    "type": "string",
+                    "description": "[事件状态]，分为“未完成”/“完成”/“记事”/“取消”，不可为空值。"
                 },
                 "image_descrpt": {
                     "type": "string",
@@ -177,12 +153,8 @@ tool_sql_insert = [{
             },
             "required": [
                 "target_time",
-                "target_location_name",
-                "target_location",
                 "finish_time",
                 "wake_time",
-                "wake_location_name",
-                "wake_location",
                 "record_descrpt",
                 "record_status",
                 "image_descrpt",
@@ -196,10 +168,13 @@ tool_sql_insert = [{
 
 
 
-def sql_update(where_conditions, target_time=None, target_location_name=None, target_location=None, finish_time=None,
-               wake_time=None, wake_location_name=None, wake_location=None, record_descrpt=None,
+import requests
+from sqlalchemy import text
+
+def sql_update(record_ids, target_time=None, finish_time=None,
+               wake_time=None, record_descrpt=None,
                record_status=None, image_descrpt=None, record_cls=None):
-    """更新记录中的指定字段，支持多种WHERE条件组合，且强制包含user_id条件"""
+    """更新记录中的指定字段，支持批量更新，强制包含record_id和user_id条件"""
 
     # 在函数内部获取 user_id，确保每次调用时是独立的
     response = requests.get("http://127.0.0.1:6202/get_user_id/")
@@ -209,27 +184,19 @@ def sql_update(where_conditions, target_time=None, target_location_name=None, ta
     set_clauses = []
 
     if target_time is not None:
-        set_clauses.append(f"target_time = '{target_time}'")
-    if target_location_name is not None:
-        set_clauses.append(f"target_location_name = '{target_location_name}'")
-    if target_location is not None:
-        set_clauses.append(f"target_location = '{target_location}'")
+        set_clauses.append(f"target_time = :target_time")
     if finish_time is not None:
-        set_clauses.append(f"finish_time = '{finish_time}'")
+        set_clauses.append(f"finish_time = :finish_time")
     if wake_time is not None:
-        set_clauses.append(f"wake_time = '{wake_time}'")
-    if wake_location_name is not None:
-        set_clauses.append(f"wake_location_name = '{wake_location_name}'")
-    if wake_location is not None:
-        set_clauses.append(f"wake_location = '{wake_location}'")
+        set_clauses.append(f"wake_time = :wake_time")
     if record_descrpt is not None:
-        set_clauses.append(f"record_descrpt = '{record_descrpt}'")
+        set_clauses.append(f"record_descrpt = :record_descrpt")
     if record_status is not None:
-        set_clauses.append(f"record_status = {1 if record_status else 0}")
+        set_clauses.append(f"record_status = :record_status")
     if image_descrpt is not None:
-        set_clauses.append(f"image_descrpt = '{image_descrpt}'")
+        set_clauses.append(f"image_descrpt = :image_descrpt")
     if record_cls is not None:
-        set_clauses.append(f"record_cls = '{record_cls}'")
+        set_clauses.append(f"record_cls = :record_cls")
 
     # 如果没有要更新的字段，则直接返回
     if not set_clauses:
@@ -238,13 +205,9 @@ def sql_update(where_conditions, target_time=None, target_location_name=None, ta
     # 构建SET子句
     set_clause_str = ", ".join(set_clauses)
 
-    # 构建WHERE子句，强制包含user_id条件
-    if where_conditions:
-        where_conditions.append(f"user_id = '{user_id}'")
-    else:
-        where_conditions = [f"user_id = '{user_id}'"]
-
-    where_clause_str = "AND ".join(where_conditions)
+    # 构建WHERE子句，强制包含多个record_id和user_id条件
+    record_ids_str = ", ".join(f"'{str(record_id)}'" for record_id in record_ids)
+    where_clause_str = f"record_id IN ({record_ids_str}) AND user_id = :user_id"
 
     # 构建完整的 SQL 更新语句
     query = f"""
@@ -254,7 +217,16 @@ def sql_update(where_conditions, target_time=None, target_location_name=None, ta
     """
 
     # 执行SQL更新操作
-    session.execute(text(query))
+    session.execute(text(query), {
+        'target_time': target_time,
+        'finish_time': finish_time,
+        'wake_time': wake_time,
+        'record_descrpt': record_descrpt,
+        'record_status': record_status,
+        'image_descrpt': image_descrpt,
+        'record_cls': record_cls,
+        'user_id': user_id
+    })
     session.commit()
     return "记录已成功更新"
 
@@ -262,52 +234,36 @@ tool_sql_update = [{
     "type": "function",
     "function": {
         "name": "sql_update",
-        "description": "使用此工具更新事件记录的字段，支持多种WHERE条件组合，并强制包含当前用户的user_id条件。",
+        "description": "使用此工具更新事件记录的字段，只能以记录唯一标识record_id为定位条件，支持批量更新。",
         "parameters": {
             "type": "object",
             "properties": {
-                "where_conditions": {
+                "record_ids": {
                     "type": "array",
                     "items": {
                         "type": "string"
                     },
-                    "description": "[WHERE条件]，可以是多个条件的组合。无需包含WHERE，只用写where后面的条件。"
+                    "description": "要更新的记录的唯一标识record_id列表。"
                 },
                 "target_time": {
                     "type": "string",
-                    "description": "[目标时间]，格式DateTime为 'YYYY-MM-DD HH:MM:SS'。如果不修改此字段，可以不传此参数。"
-                },
-                "target_location_name": {
-                    "type": "string",
-                    "description": "不传此参数。"
-                },
-                "target_location": {
-                    "type": "string",
-                    "description": "不传此参数。"
+                    "description": "[目标时间]，格式为 'YYYY-MM-DD HH:MM:SS'。如果不修改此字段，可以不传此参数。"
                 },
                 "finish_time": {
                     "type": "string",
-                    "description": "[结束时间]，格式DateTime为 'YYYY-MM-DD HH:MM:SS'。如果不修改此字段，可以不传此参数。"
+                    "description": "[结束时间]，格式为 'YYYY-MM-DD HH:MM:SS'。如果不修改此字段，可以不传此参数。"
                 },
                 "wake_time": {
                     "type": "string",
-                    "description": "[提醒时间]，格式DateTime为 'YYYY-MM-DD HH:MM:SS'。如果不修改此字段，可以不传此参数。"
-                },
-                "wake_location_name": {
-                    "type": "string",
-                    "description": "不传此参数。"
-                },
-                "wake_location": {
-                    "type": "string",
-                    "description": "不传此参数。"
+                    "description": "[提醒时间]，格式为 'YYYY-MM-DD HH:MM:SS'。如果不修改此字段，可以不传此参数。"
                 },
                 "record_descrpt": {
                     "type": "string",
                     "description": "[事件总结]。如果不修改此字段，可以不传此参数。"
                 },
                 "record_status": {
-                    "type": "boolean",
-                    "description": "[事件状态]，0为未完成，1为完成。如果不修改此字段，可以不传此参数。"
+                    "type": "string",
+                    "description": "[事件状态]，分为“未完成”/“完成”/“记事”/“取消”。如果不修改此字段，可以不传此参数。"
                 },
                 "image_descrpt": {
                     "type": "string",
@@ -318,11 +274,13 @@ tool_sql_update = [{
                     "description": "[记录类别]，表示事件的类别。如果不修改此字段，可以不传此参数。"
                 }
             },
-            "required": ["where_conditions"],
+            "required": ["record_ids"],
             "additionalProperties": False
         },
     }
 }]
+
+
 
 
 

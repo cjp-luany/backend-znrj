@@ -1,5 +1,4 @@
 import os
-
 from sklearn.metrics.pairwise import cosine_similarity
 from sqlalchemy import create_engine, text
 from sqlalchemy.orm import sessionmaker
@@ -39,8 +38,18 @@ engine = create_engine(DATABASE_URL, echo=True)
 Session = sessionmaker(bind=engine)
 session = Session()
 api = FastAPI()
-
 client = OpenAI()
+
+database_update_schema_string = """
+    --记录列名：record_cls，格式：STR，描述：[记录类别],包含会议、记录、待办、想法
+    --记录列名：record_time，格式：DATETIME，描述：一件事被用户记录的时间,格式为YYYY-MM-DD hh:mm:ss
+    --记录列名：record_location_name，格式：STR，描述：一件事被用户记录的地点,格式为STR
+    --记录列名：target_time，格式：DATETIME，描述：用户计划做某件事的目标时间,格式为YYYY-MM-DD hh:mm:ss
+    --记录列名：finish_time，格式：DATETIME，描述：某件事开始后结束的时间,格式为YYYY-MM-DD hh:mm:ss
+    --记录列名：wake_time，格式：DATETIME，描述：用户为某个记录设定的提醒时间,格式为YYYY-MM-DD hh:mm:ss
+    --记录列名：record_descrpt，格式：STR，描述：事件的总结描述
+    --记录列名：record_status，格式：STR，描述：[事件状态]，分为“未完成”/“完成”/“记事”/“取消”
+    --记录列名：image_descrpt，格式：STR，描述：[图片描述]，如用户未提及则为Null"""
 
 def get_user_id():
     response = requests.get("http://127.0.0.1:6202/get_user_id/")
@@ -55,16 +64,15 @@ def summarize_records(data_list):
     new_data_list = []
     for record in data_list:
         summary = (
+            f"[记录id]为{record['record_id']}，"
             f"[记录时间]为{record['record_time']}，"
             f"[记录类别]为{record['record_cls']}，"
             f"[记录地点]为{record['record_location_name']}，"
             f"[目标时间]为{record['target_time']}，"
-            f"[目标地点]为{record['target_location_name']}，"
             f"[结束时间]为{record['finish_time']}，"
             f"[提醒时间]为{record['wake_time']}，"
-            f"[提醒地点]为{record['wake_location_name']}，"
             f"[事件总结]为{record['record_descrpt']}，"
-            f"[事件状态]为{'完成' if record['record_status'] else '未完成'}，"
+            f"[事件状态]为{record['record_status']}，"
             f"[图片描述]为{record['image_descrpt']}，"
             f"[图片ID]为{record['image_id']}."
         )
@@ -156,25 +164,27 @@ def sql_search(query=None, record_descrpt=None):
     else:
         data_list = []
 
+    # 如果 data_list 为空，返回提示信息
     if not data_list:
-        return []
+        return "没有找到相关记录"
 
     summarized_data = summarize_records(data_list)
     return summarized_data
+
 
 tool_sql_search = [{
     "type": "function",
     "function": {
         "name": "sql_search",
-        "description": "在数据库中根据用户的查询条件返回符合条件的记录描述。工具会根据用户的查询内容自动选择合适的查询路径（SQL查询或RAG召回），并最终返回格式化的记录描述。",
+        "description": "在数据库中根据用户的查询条件返回符合条件的记录描述。工具会根据查询内容自动选择合适的查询路径（SQL查询或RAG召回），并最终返回格式化的记录描述。",
         "parameters": {
             "type": "object",
             "properties": {
                 "query": {
                     "type": "string",
-                    "description": """
+                    "description": f"""
                         用户查询条件中事件描述以外的部分（例如时间、地点、状态等）。该字段应仅包含WHERE子句中的条件内容。
-                        如果用户只提供了事件描述，则此字段可以为空。在这种情况下，系统将自动选择RAG路径。
+                        如果用户只提供了事件描述，则此字段可以为空。数据库结构为{database_update_schema_string}。
                     """,
                 },
                 "record_descrpt": {

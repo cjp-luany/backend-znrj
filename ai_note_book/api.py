@@ -94,20 +94,16 @@ class UserItemUpdateSchema(BaseModel):
 
 class RecordItem(Base):
     __tablename__ = 'record'
-    id = Column(String, primary_key=True)
+    record_id = Column(String, primary_key=True)
     record_time = Column(DateTime)
     record_location_name = Column(String)
     record_location = Column(String)
     record_cls = Column(String, nullable=True)
     target_time = Column(DateTime, nullable=True)
-    target_location_name = Column(String, nullable=True)
-    target_location = Column(String, nullable=True)
     finish_time = Column(DateTime, nullable=True)
     wake_time = Column(DateTime, nullable=True)
-    wake_location_name = Column(String, nullable=True)
-    wake_location = Column(String, nullable=True)
     record_descrpt = Column(String, default="")
-    record_status = Column(Boolean, default=0)
+    record_status = Column(String)
     image_descrpt = Column(String, default="", nullable=True)
     image_id = Column(String, default="", nullable=True)
     user_id = Column(String)
@@ -119,14 +115,10 @@ class RecordItemCreateSchema(BaseModel):
     record_location: str
     record_cls: str
     target_time: datetime
-    target_location_name: str
-    target_location: str
     finish_time: datetime
     wake_time: datetime
-    wake_location_name: str
-    wake_location: str
     record_descrpt: str
-    record_status: bool
+    record_status: str
     image_descrpt: str
     image_id: str
     user_id: str
@@ -138,14 +130,10 @@ class RecordItemUpdateSchema(BaseModel):
     record_location: str
     record_cls: str
     target_time: datetime
-    target_location_name: str
-    target_location: str
     finish_time: datetime
     wake_time: datetime
-    wake_location_name: str
-    wake_location: str
     record_descrpt: str
-    record_status: bool
+    record_status: str
     image_descrpt: str
     image_id: str
     user_id: str
