@@ -1,7 +1,3 @@
-import asyncio
-from functools import partial
-
-from openai import OpenAI
 from dotenv import load_dotenv, find_dotenv
 from tools.tools_general import *
 from tools.tools_sql_operate import *
@@ -14,9 +10,8 @@ from pydantic import BaseModel
 from api import run_fastapi2
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-import threading 
+import threading
 from flask import Flask, render_template, send_from_directory
-import httpx
 
 
 # 数据库连接
@@ -38,7 +33,7 @@ client = OpenAI()
 with open(os.path.join(CUR_DIR, "prompt/agent_prompt.txt"), 'r', encoding='utf-8') as file:
     system_message_content = file.read()
 
-tools = tools_thought + tools_general + tools_sql_operate + tool_sql_search
+tools = tools_thought + tools_sql_operate + tool_sql_search
 
 chat_histories = {}
 
@@ -64,79 +59,6 @@ def reset_clear_timer(user_id):
         chat_histories[user_id]['timer'] = threading.Timer(300, clear_chat_history, args=[user_id])
         chat_histories[user_id]['timer'].start()
 
-
-async def call_api(url: str, params: dict = None, headers: dict = None, callback=None, *callback_args):
-    try:
-        async with httpx.AsyncClient() as client:
-            response = await client.post(url, params=params, headers=headers)
-
-            # 检查响应状态码
-            response.raise_for_status()  # 如果响应状态码不是 200，将引发异常
-
-            # 解析 JSON 响应
-            result = response.json()
-
-            # 如果提供了回调函数，则调用它并传入结果和额外参数
-            if callback:
-                callback(result, *callback_args)
-
-    except httpx.HTTPStatusError as e:
-        print(f"HTTP error occurred: {e.response.status_code} - {e.response.text}")
-    except Exception as e:
-        print(f"An error occurred: {str(e)}")
-
-
-# 示例回调函数
-def handle_result(result, extra_param_tool_id,extra_param_user_id):
-    print("API call successful. Result:")
-    print(result)
-    chat_histories[extra_param_user_id]["chat_history"].append({
-        "tool_call_id": extra_param_tool_id,  # tool.id
-        "role": "tool",
-        "name": "sql_insert",
-        "content": str(result)
-    })
-
-
-def api_operation(tool_id: str, _user_id: str, operation: str, *args):
-    if operation == '':
-        return
-
-    elif operation == 'sql_insert':
-        try:
-            url = "http://127.0.0.1:6201/api/record/create"
-            args.__dict__['user_id'] = user_id
-            headers = {"Content-Type": "application/json"}
-            callback_with_args = partial(handle_result,extra_param_tool_id=tool_id, extra_param_user_id=_user_id)
-            loop = asyncio.get_event_loop()
-            loop.run_until_complete(call_api(url, params=args, headers=headers, callback=callback_with_args))
-            return
-
-        except Exception as e:
-            print(f"Error sql_insert: {str(e)}")
-            return
-
-    elif operation == 'sql_update':
-        try:
-            url = f"http://127.0.0.1:6201/api/record/update/{args['id']}"
-            headers = {"Content-Type": "application/json"}
-            callback_with_args = partial(handle_result, extra_param_tool_id=tool_id,extra_param_user_id=_user_id)
-            loop = asyncio.get_event_loop()
-            loop.run_until_complete(call_api(url, params=args, headers=headers, callback=callback_with_args))
-            return
-        except Exception as e:
-            print(f"Error sql_update: {str(e)}")
-            return
-
-    elif operation == 'sql_search':
-
-        return
-
-    else:
-        return
-
-
-
 def chat_warpper(user_id):
     if user_id not in chat_histories:
         chat_histories[user_id] = {
@@ -146,7 +68,9 @@ def chat_warpper(user_id):
 
     def chat(user_input, latitude, longitude):
         reset_clear_timer(user_id)
-        message = {"role": "user", "content": user_input}
+        current_time, weekday_name = get_current_time()
+        full_input = f"当前时间为{current_time}，{weekday_name}\n\n{user_input}"
+        message = {"role": "user", "content": full_input}
         chat_histories[user_id]["chat_history"].append(message)
 
         while True:
@@ -166,23 +90,11 @@ def chat_warpper(user_id):
                         args = json.loads(arguments)
                         print(f"{user_id}====SQL INSERT====")
                         print(args)
-                        """ TODO: 对args 执行数据库操作，用api"""
-
-                        """ =========== 修改内容 ==============="""
-                        api_operation(tool.id, user_id, 'sql_insert', *args)
-                        """ =========== 修改内容 ==============="""
-                        # 下面可以注释
-
-
                         result = sql_insert(
                             record_cls=args["record_cls"],
                             target_time=args["target_time"],
-                            target_location_name=args["target_location_name"],
-                            target_location=args["target_location"],
                             finish_time=args["finish_time"],
                             wake_time=args["wake_time"],
-                            wake_location_name=args["wake_location_name"],
-                            wake_location=args["wake_location"],
                             record_descrpt=args["record_descrpt"],
                             record_status=args["record_status"],
                             image_descrpt=args["image_descrpt"],
@@ -205,14 +117,10 @@ def chat_warpper(user_id):
 
                         # 调用 sql_update 函数
                         result = sql_update(
-                            where_conditions=args["where_conditions"],
+                            record_ids=args["record_ids"],
                             target_time=args.get("target_time"),
-                            target_location_name=args.get("target_location_name"),
-                            target_location=args.get("target_location"),
                             finish_time=args.get("finish_time"),
                             wake_time=args.get("wake_time"),
-                            wake_location_name=args.get("wake_location_name"),
-                            wake_location=args.get("wake_location"),
                             record_descrpt=args.get("record_descrpt"),
                             record_status=args.get("record_status"),
                             image_descrpt=args.get("image_descrpt")
@@ -238,8 +146,10 @@ def chat_warpper(user_id):
                         )
 
                         print(f"{user_id}====Filtered Records====")
-                        print_json(result)
-
+                        if isinstance(result, str):
+                            print(result)
+                        else:
+                            print_json(result)
                         chat_histories[user_id]["chat_history"].append({
                             "tool_call_id": tool.id,
                             "role": "tool",
@@ -266,106 +176,6 @@ def chat_warpper(user_id):
                             "name": "get_current_time",
                             "content": str(result)
                         })
-                    # elif tool.function.name == "get_week_day":
-                    #     result = get_week_day()
-                    #     chat_histories[user_id]["chat_history"].append({
-                    #         "tool_call_id": tool.id,
-                    #         "role": "tool",
-                    #         "name": "get_week_day",
-                    #         "content": str(result)
-                    #     })
-                    # elif tool.function.name == "get_key":
-                    #     result = get_key()
-                    #     print(f"{user_id}====key id====")
-                    #     print_json(result)
-                    #     chat_histories[user_id]["chat_history"].append({
-                    #         "tool_call_id": tool.id,
-                    #         "role": "tool",
-                    #         "name": "get_key",
-                    #         "content": str(result)
-                    #     })
-                    # elif tool.function.name == "get_current_location":
-                    #     result = get_current_location()
-                    #     print(f"{user_id}====记录坐标====")
-                    #     print(result)
-                    #     chat_histories[user_id]["chat_history"].append({
-                    #         "tool_call_id": tool.id,
-                    #         "role": "tool",
-                    #         "name": "get_current_location",
-                    #         "content": str(result)
-                    #     })
-                    # elif tool.function.name == "get_current_location_name":
-                    #     result = get_current_location_name()
-                    #     print(f"{user_id}====记录位置====")
-                    #     print(result)
-                    #     chat_histories[user_id]["chat_history"].append({
-                    #         "tool_call_id": tool.id,
-                    #         "role": "tool",
-                    #         "name": "get_current_location_name",
-                    #         "content": str(result)
-                    #     })
-                    # elif tool.function.name == "get_location_summary":
-                    #     tool_call = response.tool_calls[0]
-                    #     arguments = tool_call.function.arguments
-                    #     print(f"{user_id}====查询的目标====")
-                    #     print(arguments)
-                    #     result = get_location_summary(arguments)
-                    #     print(f"{user_id}====返回的地址信息====")
-                    #     print(result)
-                    #     chat_histories[user_id]["chat_history"].append({
-                    #         "tool_call_id": tool.id,
-                    #         "role": "tool",
-                    #         "name": "get_location_summary",
-                    #         "content": str(result)
-                    #     })
-                    # elif tool.function.name == "sql_operate":
-                    #     tool_call = response.tool_calls[0]
-                    #     arguments = tool_call.function.arguments
-                    #     args = json.loads(arguments)
-                    #     print(f"{user_id}====SQL====")
-                    #     print(args["query"])
-                    #     result = sql_operate(args["query"])
-                    #     print(f"{user_id}====结果====")
-                    #     print(result)
-                    #     chat_histories[user_id]["chat_history"].append({
-                    #         "tool_call_id": tool.id,
-                    #         "role": "tool",
-                    #         "name": "sql_operate",
-                    #         "content": str(result)
-                    #     })
-                    # elif tool.function.name == "sql_search_summarized":
-                    #     tool_call = response.tool_calls[0]
-                    #     arguments = tool_call.function.arguments
-                    #     args = json.loads(arguments)
-                    #
-                    #     # 打印传入的查询条件
-                    #     print(f"{user_id}====SQL====")
-                    #     print(args["query"])
-                    #
-                    #     # 调用 sql_get_summarized 函数，并打印结果
-                    #     result = sql_search_summarized(args["query"])
-                    #
-                    #     print(f"{user_id}====Filtered Records====")
-                    #     print_json(result)
-                    #
-                    #     # 将结果添加到聊天历史中
-                    #     chat_histories[user_id]["chat_history"].append({
-                    #         "tool_call_id": tool.id,
-                    #         "role": "tool",
-                    #         "name": "sql_search_summarized",
-                    #         "content": str(result)
-                    #     })
-                    #
-                    # elif tool.function.name == "sql_all_summarized":
-                    #     result = sql_all_summarized()
-                    #     print(f"{user_id}====all Records====")
-                    #     print_json(result)
-                    #     chat_histories[user_id]["chat_history"].append({
-                    #         "tool_call_id": tool.id,
-                    #         "role": "tool",
-                    #         "name": "sql_all_summarized",
-                    #         "content": str(result)
-                    #     })
             else:
                 chat_histories[user_id]["chat_history"].append({"role": "assistant", "content": response.content})
                 print(f"{user_id}=====最终回复=====")
@@ -376,9 +186,7 @@ def chat_warpper(user_id):
         return chat_histories[user_id]["chat_history"][-1]["content"]
     return chat
 
-latitude = 0
-longitude = 0
-user_id ="TODO:"
+
 
 class Query(BaseModel):
     query: str

@@ -1,4 +1,3 @@
-
 import calendar
 import os
 import random
@@ -41,9 +40,7 @@ database = Database(DATABASE_URL)  # https://pypi.org/project/databases/ 参考d
 engine = create_async_engine(DATABASE_URL, echo=True)
 async_session = sessionmaker(engine, class_=AsyncSession, expire_on_commit=False)
 
-
 IMAGE_RECOGNITION_SERVER_URL = "http://api.llm.marko1616.com:8000"
-
 
 
 def python_get_now_timespan():
@@ -78,36 +75,35 @@ class UserItem(Base):
     user_phone = Column(String)
     user_status = Column(Boolean)
 
+
 class UserItemCreateSchema(BaseModel):
-    user_id : str
-    user_creation_time : datetime
-    user_name : str
-    user_phone : str
-    user_status : bool
+    user_id: str
+    user_creation_time: datetime
+    user_name: str
+    user_phone: str
+    user_status: bool
+
 
 class UserItemUpdateSchema(BaseModel):
-    user_id : str
-    user_creation_time : datetime
-    user_name : str
-    user_phone : str
-    user_status : bool
+    user_id: str
+    user_creation_time: datetime
+    user_name: str
+    user_phone: str
+    user_status: bool
+
 
 class RecordItem(Base):
     __tablename__ = 'record'
-    id = Column(String, primary_key=True)
+    record_id = Column(String, primary_key=True)
     record_time = Column(DateTime)
     record_location_name = Column(String)
     record_location = Column(String)
     record_cls = Column(String, nullable=True)
     target_time = Column(DateTime, nullable=True)
-    target_location_name = Column(String, nullable=True)
-    target_location = Column(String, nullable=True)
     finish_time = Column(DateTime, nullable=True)
     wake_time = Column(DateTime, nullable=True)
-    wake_location_name = Column(String, nullable=True)
-    wake_location = Column(String, nullable=True)
     record_descrpt = Column(String, default="")
-    record_status = Column(Boolean, default=0)
+    record_status = Column(String)
     image_descrpt = Column(String, default="", nullable=True)
     image_id = Column(String, default="", nullable=True)
     user_id = Column(String)
@@ -119,14 +115,10 @@ class RecordItemCreateSchema(BaseModel):
     record_location: str
     record_cls: str
     target_time: datetime
-    target_location_name: str
-    target_location: str
     finish_time: datetime
     wake_time: datetime
-    wake_location_name: str
-    wake_location: str
     record_descrpt: str
-    record_status: bool
+    record_status: str
     image_descrpt: str
     image_id: str
     user_id: str
@@ -138,18 +130,13 @@ class RecordItemUpdateSchema(BaseModel):
     record_location: str
     record_cls: str
     target_time: datetime
-    target_location_name: str
-    target_location: str
     finish_time: datetime
     wake_time: datetime
-    wake_location_name: str
-    wake_location: str
     record_descrpt: str
-    record_status: bool
+    record_status: str
     image_descrpt: str
     image_id: str
     user_id: str
-
 
 
 # CRUD operations setup
@@ -161,7 +148,6 @@ class ImageItem(Base):
     id = Column(String, primary_key=True)
     image_descrpt = Column(String, default="")
     image_code = Column(String, default="")
-
 
 
 class ImageItemCreateSchema(BaseModel):
@@ -179,9 +165,6 @@ class ImageItemUpdateSchema(BaseModel):
 
 
 crud_image = FastCRUD(ImageItem)
-
-
-
 
 # CRUD router setup
 record_item_router = crud_router(
@@ -228,7 +211,6 @@ def get_week_dates():
     return weekCalendar
 
 
-
 """
 返回一周日期
 date
@@ -260,15 +242,16 @@ def get_tasks_for_each_day(year_month_str):
         daily_tasks = []
 
         # 将获取到的任务数量和任务列表存入字典
-        tasks.append({"date":date_str, "task_count": len(daily_tasks), "tasks": daily_tasks})
+        tasks.append({"date": date_str, "task_count": len(daily_tasks), "tasks": daily_tasks})
 
     return tasks
 
+
 @api.get("/weekItems/")
-async def week_items( db: AsyncSession = Depends(get_session)):
+async def week_items(db: AsyncSession = Depends(get_session)):
     w = get_week_dates()
     items = await crud_record.get_multi(db=db, target_time__lt=w[-1]["date"], target_time__gt=w[0]["date"])
-    #print(items.__str__())
+    # print(items.__str__())
     # {'data': [{'record_time': datetime.datetime(2024, 8, 14, 19, 47, 42), 'target_time': datetime.datetime(2024, 8, 15, 8, 0), 'finish_time': datetime.datetime(2024, 8, 15, 9, 0), 'wake_time': datetime.datetime(2024, 8, 15, 7, 0), 'record_descrpt': '在公司，3个人开会', 'record_status': False}], 'total_count': 1}
 
     # 创建一个新的列表，用于组合每天的日期和任务
@@ -311,21 +294,21 @@ async def week_items( db: AsyncSession = Depends(get_session)):
         new_items.append({"date": date_item, "tasks": formatted_tasks})
 
     # #print(new_items.__str__())
-    return {"data": new_items, "code":200}
+    return {"data": new_items, "code": 200}
 
 
 @api.get("/monthItems/{year_month}/")
-async def month_items(year_month:str, db: AsyncSession = Depends(get_session)):
+async def month_items(year_month: str, db: AsyncSession = Depends(get_session)):
     m = get_tasks_for_each_day(year_month)
-    #print(m)
+    # print(m)
     #  "[{'date': '2024-08-01', 'task_count': 3, 'tasks': ['Title1', 'Title2', '...']}, {'date': '2024-08-02', 'task_count': 3, 'tasks': ['Title1', 'Title2', '...']}, {'date': '2024-08-03', 'task_count': 3, 'tasks': ['Title1', 'Title2', '...']}, {'date': '2024-08-04', 'task_count': 3, 'tasks': ['Title1', 'Title2', '...']}, {'date': '2024-08-05', 'task_count': 3, 'tasks': ['Title1', 'Title2', '...']}, {'date': '2024-08-06', 'task_count': 3, 'tasks': ['Title1', 'Title2', '...']}, {'date': '2024-08-07', 'task_count': 3, 'tasks': ['Title1', 'Title2', '...']}, {'date': '2024-08-08', 'task_count': 3, 'tasks': ['Title1', 'Title2', '...']}, {'date': '2024-08-09', 'task_count': 3, 'tasks': ['Title1', 'Title2', '...']}, {'date': '2024-08-10', 'task_count': 3, 'tasks': ['Title1', 'Title2', '...']}, {'date': '2024-08-11', 'task_count': 3, 'tasks': ['Title1', 'Title2', '...']}, {'date': '2024-08-12', 'task_count': 3, 'tasks': ['Title1', 'Title2', '...']}, {'date': '2024-08-13', 'task_count': 3, 'tasks': ['Title1', 'Title2', '...']}, {'date': '2024-08-14', 'task_count': 3, 'tasks': ['Title1', 'Title2', '...']}, {'date': '2024-08-15', 'task_count': 3, 'tasks': ['Title1', 'Title2', '...']}, {'date': '2024-08-16', 'task_count': 3, 'tasks': ['Title1', 'Title2', '...']}, {'date': '2024-08-17', 'task_count': 3, 'tasks': ['Title1', 'Title2', '...']}, {'date': '2024-08-18', 'task_count': 3, 'tasks': ['Title1', 'Title2', '...']}, {'date': '2024-08-19', 'task_count': 3, 'tasks': ['Title1', 'Title2', '...']}, {'date': '2024-08-20', 'task_count': 3, 'tasks': ['Title1', 'Title2', '...']}, {'date': '2024-08-21', 'task_count': 3, 'tasks': ['Title1', 'Title2', '...']}, {'date': '2024-08-22', 'task_count': 3, 'tasks': ['Title1', 'Title2', '...']}, {'date': '2024-08-23', 'task_count': 3, 'tasks': ['Title1', 'Title2', '...']}, {'date': '2024-08-24', 'task_count': 3, 'tasks': ['Title1', 'Title2', '...']}, {'date': '2024-08-25', 'task_count': 3, 'tasks': ['Title1', 'Title2', '...']}, {'date': '2024-08-26', 'task_count': 3, 'tasks': ['Title1', 'Title2', '...']}, {'date': '2024-08-27', 'task_count': 3, 'tasks': ['Title1', 'Title2', '...']}, {'date': '2024-08-28', 'task_count': 3, 'tasks': ['Title1', 'Title2', '...']}, {'date': '2024-08-29', 'task_count': 3, 'tasks': ['Title1', 'Title2', '...']}, {'date': '2024-08-30', 'task_count': 3, 'tasks': ['Title1', 'Title2', '...']}, {'date': '2024-08-31', 'task_count': 3, 'tasks': ['Title1', 'Title2', '...']}]"
     items = await crud_record.get_multi(db=db, target_time__lt=m[-1]["date"], target_time__gt=m[0]["date"])
-    #print(items.__str__())
+    # print(items.__str__())
     new_items = list(map(lambda x: {
         "target_time": x['target_time'],
         "record_descrpt": x['record_descrpt']
     }, items['data']))
-    #print(new_items.__str__())
+    # print(new_items.__str__())
     # [{'target_time': datetime.datetime(2024, 8, 21, 15, 0), 'record_descrpt': '下周三下午3点的会议'}, {'target_time': datetime.datetime(2024, 8, 14, 15, 0), 'record_descrpt': '在2024-08-14 15:00进行市场开拓会议，预计持续1小时'}, {'target_time': datetime.datetime(2024, 8, 14, 20, 0), 'record_descrpt': '2024年8月14日20:00在北京路吃饭'}, {'target_time': datetime.datetime(2024, 8, 15, 8, 0), 'record_descrpt': '在公司，3个人开会'}]
 
     # 添加任务到对应的日期中
@@ -348,19 +331,18 @@ async def month_items(year_month:str, db: AsyncSession = Depends(get_session)):
     #         # 重新计算任务数量
     #         m[target_time]["task_count"] = len(m[target_time]["tasks"])
 
-    return {"data": m, "code":200}
-
+    return {"data": m, "code": 200}
 
 
 @api.get("/monthTodoItems/{year_month}/")
-async def month_todo_items(year_month:str, db: AsyncSession = Depends(get_session)):
+async def month_todo_items(year_month: str, db: AsyncSession = Depends(get_session)):
     m = get_tasks_for_each_day(year_month)
-    #print(m)
+    # print(m)
     #  "[{'date': '2024-08-01', 'task_count': 3, 'tasks': ['Title1', 'Title2', '...']}, {'date': '2024-08-02', 'task_count': 3, 'tasks': ['Title1', 'Title2', '...']}, {'date': '2024-08-03', 'task_count': 3, 'tasks': ['Title1', 'Title2', '...']}, {'date': '2024-08-04', 'task_count': 3, 'tasks': ['Title1', 'Title2', '...']}, {'date': '2024-08-05', 'task_count': 3, 'tasks': ['Title1', 'Title2', '...']}, {'date': '2024-08-06', 'task_count': 3, 'tasks': ['Title1', 'Title2', '...']}, {'date': '2024-08-07', 'task_count': 3, 'tasks': ['Title1', 'Title2', '...']}, {'date': '2024-08-08', 'task_count': 3, 'tasks': ['Title1', 'Title2', '...']}, {'date': '2024-08-09', 'task_count': 3, 'tasks': ['Title1', 'Title2', '...']}, {'date': '2024-08-10', 'task_count': 3, 'tasks': ['Title1', 'Title2', '...']}, {'date': '2024-08-11', 'task_count': 3, 'tasks': ['Title1', 'Title2', '...']}, {'date': '2024-08-12', 'task_count': 3, 'tasks': ['Title1', 'Title2', '...']}, {'date': '2024-08-13', 'task_count': 3, 'tasks': ['Title1', 'Title2', '...']}, {'date': '2024-08-14', 'task_count': 3, 'tasks': ['Title1', 'Title2', '...']}, {'date': '2024-08-15', 'task_count': 3, 'tasks': ['Title1', 'Title2', '...']}, {'date': '2024-08-16', 'task_count': 3, 'tasks': ['Title1', 'Title2', '...']}, {'date': '2024-08-17', 'task_count': 3, 'tasks': ['Title1', 'Title2', '...']}, {'date': '2024-08-18', 'task_count': 3, 'tasks': ['Title1', 'Title2', '...']}, {'date': '2024-08-19', 'task_count': 3, 'tasks': ['Title1', 'Title2', '...']}, {'date': '2024-08-20', 'task_count': 3, 'tasks': ['Title1', 'Title2', '...']}, {'date': '2024-08-21', 'task_count': 3, 'tasks': ['Title1', 'Title2', '...']}, {'date': '2024-08-22', 'task_count': 3, 'tasks': ['Title1', 'Title2', '...']}, {'date': '2024-08-23', 'task_count': 3, 'tasks': ['Title1', 'Title2', '...']}, {'date': '2024-08-24', 'task_count': 3, 'tasks': ['Title1', 'Title2', '...']}, {'date': '2024-08-25', 'task_count': 3, 'tasks': ['Title1', 'Title2', '...']}, {'date': '2024-08-26', 'task_count': 3, 'tasks': ['Title1', 'Title2', '...']}, {'date': '2024-08-27', 'task_count': 3, 'tasks': ['Title1', 'Title2', '...']}, {'date': '2024-08-28', 'task_count': 3, 'tasks': ['Title1', 'Title2', '...']}, {'date': '2024-08-29', 'task_count': 3, 'tasks': ['Title1', 'Title2', '...']}, {'date': '2024-08-30', 'task_count': 3, 'tasks': ['Title1', 'Title2', '...']}, {'date': '2024-08-31', 'task_count': 3, 'tasks': ['Title1', 'Title2', '...']}]"
     # items = await crud_record.get_multi(db=db, target_time__lt=m[-1]["date"], target_time__gt=m[0]["date"])
     items = await crud_record.get_multi(db=db)
-    #print(items.__str__())
-    return {"data": items, "code":200}
+    # print(items.__str__())
+    return {"data": items, "code": 200}
 
 
 # 上传图片模型
@@ -369,6 +351,7 @@ class UploadImageItem(BaseModel):
 
 
 mykey = f'sk-yyVoHd34C4cheQLRAeB6B8C337F946Ed8629A0D7F402E6C'
+
 
 @api.post("/uploadOneImage/")
 async def recognize_one_image(item: UploadImageItem, db: AsyncSession = Depends(get_session)):
@@ -436,7 +419,7 @@ async def recognize_one_image(item: UploadImageItem, db: AsyncSession = Depends(
 
         # Claude-3
         _image_descrpt = response.json()['content'][0]['text']
-        
+
         new_item = await crud_image.create(db, ImageItemCreateSchema(id=_id.__str__(), image_descrpt=_image_descrpt,
                                                                      image_code=item.img_base64))
 
@@ -517,6 +500,7 @@ class SpeechAsrModel(BaseModel):
     #     "audio_format": "wav",
     # }
 
+
 @api.post("/speech_asr/")
 async def speech_asr(item: SpeechAsrModel):
     try:
@@ -574,6 +558,7 @@ def generate_speech_base64(text, voice="alloy"):
     else:
         raise Exception(f"Error: {response.status_code}, {response.text}")
 
+
 @api.get("/speech_tts/")
 async def speech_tts(text: str, voice: str = "alloy"):
     try:
@@ -593,7 +578,7 @@ async def speech_tts(text: str, voice: str = "alloy"):
 
 
 @api.get("/getImageUUID/")
-async def get_image_from_uuid(uuid:str, db: AsyncSession = Depends(get_session)):
+async def get_image_from_uuid(uuid: str, db: AsyncSession = Depends(get_session)):
     try:
         return {
             "code": 200,
@@ -614,7 +599,7 @@ def run_fastapi2():
 
 # cors名单
 origins = [
-"*",
+    "*",
     "http://127.0.0.1:8102",
     "http://localhost:8102",
     "http://127.0.0.1:6102",
@@ -630,7 +615,6 @@ origins = [
     "http://localhost:62065"
 ]
 
-
 # cors中间件
 api.add_middleware(
     CORSMiddleware,
@@ -639,11 +623,6 @@ api.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
-
-
-
-
-
 
 # @app.post("/custom/items/")
 # async def create_item(item_data: CreateItemSchema, db: AsyncSession = Depends(get_session)):
