@@ -1,10 +1,3 @@
-# import sys
-# import os
-# current_file_path = __file__  
-# current_dir = os.path.dirname(current_file_path)  
-# parent_dir = os.path.dirname(current_dir)  
-# sys.path.append(parent_dir)  
-# import main_note_ai
 import requests
 from ENV import tecent_map_api_key
 # tecent_map_api_key = 'ESPBZ-WDHKQ-MBD5P-BWOB2-NZYYV-6EBP4'
