@@ -3,9 +3,11 @@ import os
 from fastapi import FastAPI, Depends
 from fastapi.middleware.cors import CORSMiddleware
 from fastcrud import FastCRUD, crud_router
+from pydantic import BaseModel
 from sqlalchemy.ext.asyncio import AsyncSession
 
 import service.calendar
+import service.chat
 import service.mllm
 from crud.models import lifespan, RecordItem, ImageItem, get_session, RecordItemCreateSchema, \
     RecordItemUpdateSchema, ImageItemCreateSchema, ImageItemUpdateSchema
@@ -60,6 +62,8 @@ image_item_router = crud_router(
 
 api.include_router(image_item_router)
 
+""" customize async methods """
+
 
 @api.get("/weekItems/")
 async def week_items(db: AsyncSession = Depends(get_session)):
@@ -89,6 +93,24 @@ async def speech_asr(item: service.mllm.SpeechAsrModel):
 @api.get("/speech_tts/")
 async def speech_tts(text: str, voice: str = "alloy"):
     return await service.mllm.speech_tts(text, voice)
+
+
+""" customize sync methods """
+
+
+@api.post("/query/")
+def start_loop(query_value: service.chat.Query):
+    return service.chat.start_loop(query_value)
+
+
+@api.get("/get_lat_longit/")
+def get_lat_longit_value():
+    return service.chat.get_lat_longit_value()
+
+
+@api.get("/get_user_id/")
+def get_user_id():
+    return service.chat.get_user_id()
 
 
 # 启动fastapi

@@ -21,6 +21,7 @@ backend znrj python
 * other：其他开发者自建分支，用于合并到主版本
 
 #### 功能清单、测试地址、测试覆盖率
+
 * 对话服务
   * 思维链
   * Function Call 和 Agent
@@ -55,6 +56,7 @@ backend znrj python
   * 公众号
 
 #### 部署和开发前置
+
 * 后端
   * python
     * conda->虚拟环境 py3.9
@@ -63,7 +65,7 @@ backend znrj python
     * 异步和多线程
     * redis、mq和分布式
   * 服务器
-    * system注册服务
+    * ssh、注册服务、容器等
     * frp大模型机器、数据库机器
     * nginx、load balance
     * 服务器申请、备案、运维、安全策略等
