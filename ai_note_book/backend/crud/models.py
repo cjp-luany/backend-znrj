@@ -1,26 +1,16 @@
-import calendar
 import os
-import random
-import string
-import time
-import json
-
-from dotenv import load_dotenv
-from datetime import datetime, timedelta, timezone
+from datetime import datetime
 from typing import AsyncGenerator
 
 from databases import Database
-from fastapi.middleware.cors import CORSMiddleware
-from fastcrud import crud_router, FastCRUD
+from fastapi import FastAPI
 from pydantic import BaseModel
 from sqlalchemy import Column, String, DateTime, \
     Boolean, event
 from sqlalchemy.ext.asyncio import AsyncSession, create_async_engine
 from sqlalchemy.orm import DeclarativeBase, sessionmaker
 
-from fastapi import Depends, FastAPI
-import requests
-import base64
+from utils.random import get_key
 
 CUR_DIR = os.path.realpath(os.path.dirname(__file__))
 PARENT_DIR = os.path.dirname(CUR_DIR)
@@ -31,15 +21,6 @@ database = Database(DATABASE_URL)  # https://pypi.org/project/databases/ 参考d
 
 engine = create_async_engine(DATABASE_URL, echo=True)
 async_session = sessionmaker(engine, class_=AsyncSession, expire_on_commit=False)
-
-"""
-    database的主要作用：
-        - 定义orm模型
-        - 定义模型的默认id，数据新增前触发器
-        - 处理session
-        - 连接数据库
-        - fastcrud预处理
-"""
 
 
 # Database session dependency
@@ -53,19 +34,6 @@ async def lifespan(app: FastAPI):
     async with engine.begin() as conn:
         await conn.run_sync(Base.metadata.create_all)
     yield
-
-
-# 生成字符串形式id
-def get_key():
-    characters = string.ascii_letters + string.digits
-    random_key = ''.join(random.choices(characters, k=11))
-    return random_key
-
-
-# 生成数字形式id
-def python_get_now_timespan():
-    # return int(time.time())
-    return int(time.time().__str__()[:-3].replace(".", ""))
 
 
 class Base(DeclarativeBase):
@@ -160,3 +128,33 @@ class ImageItemCreateSchema(BaseModel):
 class ImageItemUpdateSchema(BaseModel):
     image_descrpt: str
     image_code: str
+
+
+# 上传图片模型
+class UploadImageItem(BaseModel):
+    img_base64: str
+
+
+class UserItem(Base):
+    __tablename__ = 'user_data'
+    user_id = Column(String, primary_key=True)
+    user_creation_time = Column(DateTime)
+    user_name = Column(String)
+    user_phone = Column(String)
+    user_status = Column(Boolean)
+
+
+class UserItemCreateSchema(BaseModel):
+    user_id: str
+    user_creation_time: datetime
+    user_name: str
+    user_phone: str
+    user_status: bool
+
+
+class UserItemUpdateSchema(BaseModel):
+    user_id: str
+    user_creation_time: datetime
+    user_name: str
+    user_phone: str
+    user_status: bool

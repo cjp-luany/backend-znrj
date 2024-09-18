@@ -1,11 +1,12 @@
-import random
-
-from common.database import get_session
-from mobile_service.main import api, crud_record
 import calendar
+import random
 from datetime import datetime, timezone, timedelta
-from sqlalchemy.ext.asyncio import AsyncSession, create_async_engine
-from fastapi import Depends, FastAPI
+
+from fastapi import Depends
+from sqlalchemy.ext.asyncio import AsyncSession
+
+import crud
+from crud.models import get_session
 
 
 def get_week_dates():
@@ -28,6 +29,7 @@ def get_week_dates():
 
     return weekCalendar
 
+
 def get_tasks_for_each_day(year_month_str):
     # 将输入的字符串转换为datetime对象，方便后续操作
     date = datetime.strptime(year_month_str, "%Y-%m")
@@ -47,16 +49,15 @@ def get_tasks_for_each_day(year_month_str):
         daily_tasks = []
 
         # 将获取到的任务数量和任务列表存入字典
-        tasks.append({"date":date_str, "task_count": len(daily_tasks), "tasks": daily_tasks})
+        tasks.append({"date": date_str, "task_count": len(daily_tasks), "tasks": daily_tasks})
 
     return tasks
 
 
-@api.get("/weekItems/")
-async def week_items( db: AsyncSession = Depends(get_session)):
+async def week_items(db: AsyncSession = Depends(get_session)):
     w = get_week_dates()
-    items = await crud_record.get_multi(db=db, target_time__lt=w[-1]["date"], target_time__gt=w[0]["date"])
-    #print(items.__str__())
+    items = await crud.start.crud_record.get_multi(db=db, target_time__lt=w[-1]["date"], target_time__gt=w[0]["date"])
+    # print(items.__str__())
     # {'data': [{'record_time': datetime.datetime(2024, 8, 14, 19, 47, 42), 'target_time': datetime.datetime(2024, 8, 15, 8, 0), 'finish_time': datetime.datetime(2024, 8, 15, 9, 0), 'wake_time': datetime.datetime(2024, 8, 15, 7, 0), 'record_descrpt': '在公司，3个人开会', 'record_status': False}], 'total_count': 1}
 
     # 创建一个新的列表，用于组合每天的日期和任务
@@ -99,21 +100,20 @@ async def week_items( db: AsyncSession = Depends(get_session)):
         new_items.append({"date": date_item, "tasks": formatted_tasks})
 
     # #print(new_items.__str__())
-    return {"data": new_items, "code":200}
+    return {"data": new_items, "code": 200}
 
 
-@api.get("/monthItems/{year_month}/")
-async def month_items(year_month:str, db: AsyncSession = Depends(get_session)):
+async def month_items(year_month: str, db: AsyncSession = Depends(get_session)):
     m = get_tasks_for_each_day(year_month)
-    #print(m)
+    # print(m)
     #  "[{'date': '2024-08-01', 'task_count': 3, 'tasks': ['Title1', 'Title2', '...']}, {'date': '2024-08-02', 'task_count': 3, 'tasks': ['Title1', 'Title2', '...']}, {'date': '2024-08-03', 'task_count': 3, 'tasks': ['Title1', 'Title2', '...']}, {'date': '2024-08-04', 'task_count': 3, 'tasks': ['Title1', 'Title2', '...']}, {'date': '2024-08-05', 'task_count': 3, 'tasks': ['Title1', 'Title2', '...']}, {'date': '2024-08-06', 'task_count': 3, 'tasks': ['Title1', 'Title2', '...']}, {'date': '2024-08-07', 'task_count': 3, 'tasks': ['Title1', 'Title2', '...']}, {'date': '2024-08-08', 'task_count': 3, 'tasks': ['Title1', 'Title2', '...']}, {'date': '2024-08-09', 'task_count': 3, 'tasks': ['Title1', 'Title2', '...']}, {'date': '2024-08-10', 'task_count': 3, 'tasks': ['Title1', 'Title2', '...']}, {'date': '2024-08-11', 'task_count': 3, 'tasks': ['Title1', 'Title2', '...']}, {'date': '2024-08-12', 'task_count': 3, 'tasks': ['Title1', 'Title2', '...']}, {'date': '2024-08-13', 'task_count': 3, 'tasks': ['Title1', 'Title2', '...']}, {'date': '2024-08-14', 'task_count': 3, 'tasks': ['Title1', 'Title2', '...']}, {'date': '2024-08-15', 'task_count': 3, 'tasks': ['Title1', 'Title2', '...']}, {'date': '2024-08-16', 'task_count': 3, 'tasks': ['Title1', 'Title2', '...']}, {'date': '2024-08-17', 'task_count': 3, 'tasks': ['Title1', 'Title2', '...']}, {'date': '2024-08-18', 'task_count': 3, 'tasks': ['Title1', 'Title2', '...']}, {'date': '2024-08-19', 'task_count': 3, 'tasks': ['Title1', 'Title2', '...']}, {'date': '2024-08-20', 'task_count': 3, 'tasks': ['Title1', 'Title2', '...']}, {'date': '2024-08-21', 'task_count': 3, 'tasks': ['Title1', 'Title2', '...']}, {'date': '2024-08-22', 'task_count': 3, 'tasks': ['Title1', 'Title2', '...']}, {'date': '2024-08-23', 'task_count': 3, 'tasks': ['Title1', 'Title2', '...']}, {'date': '2024-08-24', 'task_count': 3, 'tasks': ['Title1', 'Title2', '...']}, {'date': '2024-08-25', 'task_count': 3, 'tasks': ['Title1', 'Title2', '...']}, {'date': '2024-08-26', 'task_count': 3, 'tasks': ['Title1', 'Title2', '...']}, {'date': '2024-08-27', 'task_count': 3, 'tasks': ['Title1', 'Title2', '...']}, {'date': '2024-08-28', 'task_count': 3, 'tasks': ['Title1', 'Title2', '...']}, {'date': '2024-08-29', 'task_count': 3, 'tasks': ['Title1', 'Title2', '...']}, {'date': '2024-08-30', 'task_count': 3, 'tasks': ['Title1', 'Title2', '...']}, {'date': '2024-08-31', 'task_count': 3, 'tasks': ['Title1', 'Title2', '...']}]"
-    items = await crud_record.get_multi(db=db, target_time__lt=m[-1]["date"], target_time__gt=m[0]["date"])
-    #print(items.__str__())
+    items = await crud.start.crud_record.get_multi(db=db, target_time__lt=m[-1]["date"], target_time__gt=m[0]["date"])
+    # print(items.__str__())
     new_items = list(map(lambda x: {
         "target_time": x['target_time'],
         "record_descrpt": x['record_descrpt']
     }, items['data']))
-    #print(new_items.__str__())
+    # print(new_items.__str__())
     # [{'target_time': datetime.datetime(2024, 8, 21, 15, 0), 'record_descrpt': '下周三下午3点的会议'}, {'target_time': datetime.datetime(2024, 8, 14, 15, 0), 'record_descrpt': '在2024-08-14 15:00进行市场开拓会议，预计持续1小时'}, {'target_time': datetime.datetime(2024, 8, 14, 20, 0), 'record_descrpt': '2024年8月14日20:00在北京路吃饭'}, {'target_time': datetime.datetime(2024, 8, 15, 8, 0), 'record_descrpt': '在公司，3个人开会'}]
 
     # 添加任务到对应的日期中
@@ -136,16 +136,14 @@ async def month_items(year_month:str, db: AsyncSession = Depends(get_session)):
     #         # 重新计算任务数量
     #         m[target_time]["task_count"] = len(m[target_time]["tasks"])
 
-    return {"data": m, "code":200}
+    return {"data": m, "code": 200}
 
 
-
-@api.get("/monthTodoItems/{year_month}/")
-async def month_todo_items(year_month:str, db: AsyncSession = Depends(get_session)):
+async def month_todo_items(year_month: str, db: AsyncSession = Depends(get_session)):
     m = get_tasks_for_each_day(year_month)
-    #print(m)
+    # print(m)
     #  "[{'date': '2024-08-01', 'task_count': 3, 'tasks': ['Title1', 'Title2', '...']}, {'date': '2024-08-02', 'task_count': 3, 'tasks': ['Title1', 'Title2', '...']}, {'date': '2024-08-03', 'task_count': 3, 'tasks': ['Title1', 'Title2', '...']}, {'date': '2024-08-04', 'task_count': 3, 'tasks': ['Title1', 'Title2', '...']}, {'date': '2024-08-05', 'task_count': 3, 'tasks': ['Title1', 'Title2', '...']}, {'date': '2024-08-06', 'task_count': 3, 'tasks': ['Title1', 'Title2', '...']}, {'date': '2024-08-07', 'task_count': 3, 'tasks': ['Title1', 'Title2', '...']}, {'date': '2024-08-08', 'task_count': 3, 'tasks': ['Title1', 'Title2', '...']}, {'date': '2024-08-09', 'task_count': 3, 'tasks': ['Title1', 'Title2', '...']}, {'date': '2024-08-10', 'task_count': 3, 'tasks': ['Title1', 'Title2', '...']}, {'date': '2024-08-11', 'task_count': 3, 'tasks': ['Title1', 'Title2', '...']}, {'date': '2024-08-12', 'task_count': 3, 'tasks': ['Title1', 'Title2', '...']}, {'date': '2024-08-13', 'task_count': 3, 'tasks': ['Title1', 'Title2', '...']}, {'date': '2024-08-14', 'task_count': 3, 'tasks': ['Title1', 'Title2', '...']}, {'date': '2024-08-15', 'task_count': 3, 'tasks': ['Title1', 'Title2', '...']}, {'date': '2024-08-16', 'task_count': 3, 'tasks': ['Title1', 'Title2', '...']}, {'date': '2024-08-17', 'task_count': 3, 'tasks': ['Title1', 'Title2', '...']}, {'date': '2024-08-18', 'task_count': 3, 'tasks': ['Title1', 'Title2', '...']}, {'date': '2024-08-19', 'task_count': 3, 'tasks': ['Title1', 'Title2', '...']}, {'date': '2024-08-20', 'task_count': 3, 'tasks': ['Title1', 'Title2', '...']}, {'date': '2024-08-21', 'task_count': 3, 'tasks': ['Title1', 'Title2', '...']}, {'date': '2024-08-22', 'task_count': 3, 'tasks': ['Title1', 'Title2', '...']}, {'date': '2024-08-23', 'task_count': 3, 'tasks': ['Title1', 'Title2', '...']}, {'date': '2024-08-24', 'task_count': 3, 'tasks': ['Title1', 'Title2', '...']}, {'date': '2024-08-25', 'task_count': 3, 'tasks': ['Title1', 'Title2', '...']}, {'date': '2024-08-26', 'task_count': 3, 'tasks': ['Title1', 'Title2', '...']}, {'date': '2024-08-27', 'task_count': 3, 'tasks': ['Title1', 'Title2', '...']}, {'date': '2024-08-28', 'task_count': 3, 'tasks': ['Title1', 'Title2', '...']}, {'date': '2024-08-29', 'task_count': 3, 'tasks': ['Title1', 'Title2', '...']}, {'date': '2024-08-30', 'task_count': 3, 'tasks': ['Title1', 'Title2', '...']}, {'date': '2024-08-31', 'task_count': 3, 'tasks': ['Title1', 'Title2', '...']}]"
     # items = await crud_record.get_multi(db=db, target_time__lt=m[-1]["date"], target_time__gt=m[0]["date"])
-    items = await crud_record.get_multi(db=db)
-    #print(items.__str__())
-    return {"data": items, "code":200}
+    items = await crud.start.crud_record.get_multi(db=db)
+    # print(items.__str__())
+    return {"data": items, "code": 200}
