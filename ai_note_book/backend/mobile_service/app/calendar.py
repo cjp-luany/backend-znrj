@@ -1,7 +1,7 @@
 import random
 
-from api import get_session
-from backend.mobile_service.main import api, crud_record
+from common.database import get_session
+from mobile_service.main import api, crud_record
 import calendar
 from datetime import datetime, timezone, timedelta
 from sqlalchemy.ext.asyncio import AsyncSession, create_async_engine
