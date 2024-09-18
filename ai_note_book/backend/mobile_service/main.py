@@ -1,5 +1,7 @@
+import os
 from threading import Thread
 
+from dotenv import dotenv_values
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from fastcrud import FastCRUD, crud_router
@@ -7,7 +9,7 @@ from fastcrud import FastCRUD, crud_router
 from backend.common.database import lifespan, RecordItem, ImageItem, get_session, RecordItemCreateSchema, \
     RecordItemUpdateSchema, ImageItemCreateSchema, ImageItemUpdateSchema
 
-from backend.common.config import load_env, get_env_variable
+from backend.common.config import load_env, get_env_variable, read_yaml_files
 
 """
     main的主要作用：
@@ -24,19 +26,26 @@ from backend.common.config import load_env, get_env_variable
 # 加载服务1的环境配置
 load_env(".env")
 
+CUR_DIR = os.path.realpath(os.path.dirname(__file__))
+
 api = FastAPI(lifespan=lifespan)
 
 
 # 启动fastapi
 def run_api():
     import uvicorn
-    port = int(get_env_variable("PORT"))
+    yaml_contents = read_yaml_files(CUR_DIR)
+
+    port = 6202
+    if "server" in yaml_contents and "port" in yaml_contents["server"]:
+        port = yaml_contents["server"]["port"]
+
     uvicorn.run(api, host="0.0.0.0", port=port, loop="asyncio")
 
 
 # cors名单
 origins = [
-"*",
+    "*",
     "http://127.0.0.1:8102",
     "http://localhost:8102",
     "http://127.0.0.1:6102",
