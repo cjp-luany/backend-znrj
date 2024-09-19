@@ -1,4 +1,5 @@
 import asyncio
+import json
 
 import httpx
 from dotenv import load_dotenv, find_dotenv
@@ -13,6 +14,8 @@ from tools.tools_location import *
 from tools.tools_search import *
 from pydantic import BaseModel
 import threading
+
+from utils.api_client import post_record, patch_record
 
 client = OpenAI()
 with open(os.path.join(PARENT_DIR, "prompt\\agent_prompt.txt"), 'r', encoding='utf-8') as file:
@@ -60,28 +63,52 @@ def reset_clear_timer(user_id):
             chat_histories[user_id]['timer'] = threading.Timer(300, clear_chat_history, args=[user_id])
             chat_histories[user_id]['timer'].start()
     except Exception as e:
-        print({e})
-
-async def post_record(url: str, args):
-    payload = json.dumps(args)
-
-    async with httpx.AsyncClient() as client:
-        try:
-            response = await client.post(url, content=payload, headers={"Content-Type": "application/json"})
-            response.raise_for_status()
-            return response.json()
-        except httpx.HTTPStatusError as e:
-            print(f"HTTP error occurred: {e.response.status_code} - {e.response.text}")
-        except Exception as e:
-            print(f"An error occurred: {str(e)}")
+        print({e.__class__.__name__: str(e)})
 
 
-def chat_args_2_url_params(function_name, args):
+def get_params_by_chat(function_name, args):
+    _copy = {}
+    try:
+        _copy = args.copy()
+    except Exception as e:
+        print({e.__class__.__name__: str(e)})
+
     if function_name == "sql_insert":
-        return args
+        # 同步 获取 user_id
+        response = requests.get("http://127.0.0.1:6201/get_user_id/")
+        _user_id = response.json()
+
+        # 获取当前时间
+        record_time = get_current_time()[0]
+
+        # 获取当前位置信息
+        record_location_name = get_current_location_name()
+        record_location = get_current_location()
+
+        # 格式化 location 值
+        record_location_str = f"({record_location[0]}, {record_location[1]})"
+
+        custom_dict = {
+            "record_time": record_time,
+            "record_location_name": record_location_name,
+            "record_location": record_location_str,
+            "user_id": _user_id
+        }
+
+        return args | custom_dict
 
     elif function_name == "sql_update":
-        return args
+        # _ids =args["record_ids"]
+
+        # 同步 获取 user_id
+        response = requests.get("http://127.0.0.1:6201/get_user_id/")
+        _user_id = response.json()
+
+        custom_dict = {
+            "user_id": _user_id
+        }
+
+        return args | custom_dict
 
     elif function_name == "sql_search":
         return args
@@ -91,8 +118,6 @@ def chat_args_2_url_params(function_name, args):
 
 
 def tool_calls_handler(tool: ChatCompletionMessageToolCall):
-    """ TODO: 完成逻辑 """
-
     try:
         arguments = tool.function.arguments
         args = json.loads(arguments)
@@ -101,13 +126,15 @@ def tool_calls_handler(tool: ChatCompletionMessageToolCall):
         result = None
 
         if tool.function.name == "sql_insert":
-            params = chat_args_2_url_params(tool.function.name, args)
+            params = get_params_by_chat(tool.function.name, args)
             asyncio.run(post_record("http://127.0.0.1:6201/api/record/create", params))
+            # response.json()["record_id"] 有id但是需要用其他方法从异步获取结果
             result = f"记录已成功插入,record_id为"  # {unique_id}
 
         elif tool.function.name == "sql_update":
-            params = chat_args_2_url_params(tool.function.name, args)
-            asyncio.run(post_record(f"http://127.0.0.1:6201/api/record/update/{params.record_id}", params))
+            params = get_params_by_chat(tool.function.name, args)
+            for record_id in params["record_ids"]:
+                asyncio.run(patch_record(f"http://127.0.0.1:6201/api/record/update/{record_id}", params))
             result = "记录已成功更新"
 
         elif tool.function.name == "sql_search":
@@ -120,12 +147,14 @@ def tool_calls_handler(tool: ChatCompletionMessageToolCall):
             print(f"{user_id}====Filtered Records====")
             if isinstance(result, str):
                 print(result)
+            else:
+                print_json(result)
 
         elif tool.function.name == "thought_step":
-            result = unclassified.thought_step(args)
+            result = thought_step(args)
 
         elif tool.function.name == "get_current_time":
-            result = unclassified.get_current_time()
+            result = get_current_time()
 
         print(f"{user_id}====Result of {tool.function.name}====")
         print(result)
@@ -164,102 +193,8 @@ def chat_warpper(user_id):
 
             if response.tool_calls:
                 for tool in response.tool_calls:
-                    """ TODO: 完成逻辑 """
-                    # tool_calls_handler(tool)
-                    # continue
-
-                    if tool.function.name == "sql_insert":  # 新添加的elif条件
-                        tool_call = response.tool_calls[0]
-                        arguments = tool_call.function.arguments
-                        args = json.loads(arguments)
-                        print(f"{user_id}====SQL INSERT====")
-                        print(args)
-                        result = sql_insert(
-                            record_cls=args["record_cls"],
-                            target_time=args["target_time"],
-                            finish_time=args["finish_time"],
-                            wake_time=args["wake_time"],
-                            record_descrpt=args["record_descrpt"],
-                            record_status=args["record_status"],
-                            image_descrpt=args["image_descrpt"],
-                            image_id=args["image_id"]
-                        )
-                        print(f"{user_id}====插入结果====")
-                        print(result)
-                        chat_histories[user_id]["chat_history"].append({
-                            "tool_call_id": tool.id,
-                            "role": "tool",
-                            "name": "sql_insert",
-                            "content": str(result)
-                        })
-                    elif tool.function.name == "sql_update":  # 新添加的elif条件
-                        tool_call = response.tool_calls[0]
-                        arguments = tool_call.function.arguments
-                        args = json.loads(arguments)
-                        print(f"{user_id}====SQL UPDATE====")
-                        print(args)
-
-                        # 调用 sql_update 函数
-                        result = sql_update(
-                            record_ids=args["record_ids"],
-                            target_time=args.get("target_time"),
-                            finish_time=args.get("finish_time"),
-                            wake_time=args.get("wake_time"),
-                            record_descrpt=args.get("record_descrpt"),
-                            record_status=args.get("record_status"),
-                            image_descrpt=args.get("image_descrpt")
-                        )
-
-                        print(f"{user_id}====更新结果====")
-                        print(result)
-                        chat_histories[user_id]["chat_history"].append({
-                            "tool_call_id": tool.id,
-                            "role": "tool",
-                            "name": "sql_update",
-                            "content": str(result)
-                        })
-                    elif tool.function.name == "sql_search":
-                        tool_call = response.tool_calls[0]
-                        arguments = tool_call.function.arguments
-                        args = json.loads(arguments)
-
-                        # 调用 sql_search，不需要 include_descrpt_search 参数
-                        result = sql_search(
-                            query=args.get("query", ""),  # 获取 query 参数，默认为空字符串
-                            record_descrpt=args.get("record_descrpt")  # 获取 record_descrpt 参数
-                        )
-
-                        print(f"{user_id}====Filtered Records====")
-                        if isinstance(result, str):
-                            print(result)
-                        else:
-                            print_json(result)
-                        chat_histories[user_id]["chat_history"].append({
-                            "tool_call_id": tool.id,
-                            "role": "tool",
-                            "name": "sql_search",
-                            "content": str(result)
-                        })
-                    elif tool.function.name == "thought_step":
-                        tool_call = response.tool_calls[0]
-                        arguments = tool_call.function.arguments
-                        print(f"{user_id}====思考记录====")
-                        print(arguments)
-                        result = thought_step(arguments)
-                        chat_histories[user_id]["chat_history"].append({
-                            "tool_call_id": tool.id,
-                            "role": "tool",
-                            "name": "thought_step",
-                            "content": str(result)
-                        })
-                    elif tool.function.name == "get_current_time":
-                        result = get_current_time()
-                        chat_histories[user_id]["chat_history"].append({
-                            "tool_call_id": tool.id,
-                            "role": "tool",
-                            "name": "get_current_time",
-                            "content": str(result)
-                        })
+                    """ 完成：Function Call 处理函数 """
+                    tool_calls_handler(tool)
             else:
                 chat_histories[user_id]["chat_history"].append({"role": "assistant", "content": response.content})
                 print(f"{user_id}=====最终回复=====")

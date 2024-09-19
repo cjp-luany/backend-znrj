@@ -1,4 +1,5 @@
 import os
+import uuid
 from datetime import datetime
 from typing import AsyncGenerator
 
@@ -42,63 +43,59 @@ class Base(DeclarativeBase):
 
 class RecordItem(Base):
     __tablename__ = 'record'
-    id = Column(String, primary_key=True)
+    record_id = Column(String, primary_key=True)
     record_time = Column(DateTime)
     record_location_name = Column(String)
     record_location = Column(String)
-    target_time = Column(DateTime)
-    target_location_name = Column(String)
-    target_location = Column(String)
-    finish_time = Column(DateTime)
-    wake_time = Column(DateTime)
-    wake_location_name = Column(String)
-    wake_location = Column(String)
+    record_cls = Column(String, nullable=True)
+    target_time = Column(DateTime, nullable=True)
+    finish_time = Column(DateTime, nullable=True)
+    wake_time = Column(DateTime, nullable=True)
     record_descrpt = Column(String, default="")
-    record_status = Column(Boolean, default=0)
-    image_descrpt = Column(String, default="")
-    image_id = Column(String, default="")
+    record_status = Column(String)
+    image_descrpt = Column(String, default="", nullable=True)
+    image_id = Column(String, default="", nullable=True)
+    user_id = Column(String)
 
     @staticmethod
-    def set_default_id(mapper, connection, target):
-        if target.id is None:
-            target.id = get_key()  # python_get_now_timespan
+    def set_default(mapper, connection, target):
+        if target.record_id is None:
+            target.record_id = str(uuid.uuid4())  # python_get_now_timespan
+        if target.finish_time == "":
+            target.finish_time = None
 
 
-event.listen(RecordItem, 'before_insert', RecordItem.set_default_id)
+event.listen(RecordItem, 'before_insert', RecordItem.set_default)
 
 
 class RecordItemCreateSchema(BaseModel):
     record_time: datetime
     record_location_name: str
     record_location: str
+    record_cls: str
     target_time: datetime
-    target_location_name: str
-    target_location: str
-    finish_time: datetime
+    finish_time: datetime | str
     wake_time: datetime
-    wake_location_name: str
-    wake_location: str
     record_descrpt: str
-    record_status: bool
+    record_status: str
     image_descrpt: str
     image_id: str
+    user_id: str
 
 
 class RecordItemUpdateSchema(BaseModel):
-    record_time: datetime
-    record_location_name: str
-    record_location: str
-    target_time: datetime
-    target_location_name: str
-    target_location: str
-    finish_time: datetime
-    wake_time: datetime
-    wake_location_name: str
-    wake_location: str
-    record_descrpt: str
-    record_status: bool
-    image_descrpt: str
-    image_id: str
+    record_time: datetime | None = None
+    record_location_name: str | None = None
+    record_location: str | None = None
+    record_cls: str | None = None
+    target_time: datetime | None = None
+    finish_time: datetime | None = None
+    wake_time: datetime | None = None
+    record_descrpt: str | None = None
+    record_status: str | None = None
+    image_descrpt: str | None = None
+    image_id: str | None = None
+    user_id: str | None = None
 
 
 class ImageItem(Base):
@@ -110,7 +107,7 @@ class ImageItem(Base):
     @staticmethod
     def set_default_id(mapper, connection, target):
         if target.id is None:
-            target.id = get_key()  # python_get_now_timespan
+            target.id = str(uuid.uuid4())  # python_get_now_timespan
 
 
 event.listen(ImageItem, 'before_insert', ImageItem.set_default_id)

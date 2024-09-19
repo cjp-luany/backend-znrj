@@ -18,29 +18,13 @@ import uuid
 from datetime import datetime
 from sqlalchemy import text
 
+from crud.models import RecordItem
 from tools.tools_location import get_current_location, get_current_location_name  # 假设位置工具导入
 from tools.tools_general import get_time  # 假设时间工具导入
 
 
 load_dotenv()
 
-
-class RecordItem():
-    id = Column(String, primary_key=True)
-    record_time = Column(DateTime)
-    record_location_name = Column(String)
-    record_location = Column(String)
-    target_time = Column(DateTime)
-    target_location_name = Column(String)
-    target_location = Column(String)
-    finish_time = Column(DateTime)
-    wake_time = Column(DateTime)
-    wake_location_name = Column(String)
-    wake_location = Column(String)
-    record_descrpt = Column(String, default="")
-    record_status = Column(Boolean, default=0)
-    image_descrpt = Column(String, default="")
-    image_id = Column(String, default="")
 
 # 数据库连接
 CUR_DIR = os.path.realpath(os.path.dirname(__file__))
@@ -73,7 +57,7 @@ database_update_schema_string = """
     --记录列名：image_descrpt，格式：STR，描述：[图片描述]，如用户未提及则为Null"""
 
 def get_user_id():
-    response = requests.get("http://127.0.0.1:6202/get_user_id/")
+    response = requests.get("http://127.0.0.1:6201/get_user_id/")
     return response.json()
 
 def summarize_records(data_list):

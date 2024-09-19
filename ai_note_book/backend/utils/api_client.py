@@ -2,7 +2,36 @@
 
 import json
 
+import httpx
 import requests
+
+
+async def post_record(url: str, args):
+    payload = json.dumps(args, ensure_ascii=False)
+
+    async with httpx.AsyncClient() as client:
+        try:
+            response = await client.post(url, content=payload, headers={"Content-Type": "application/json"})
+            response.raise_for_status()
+            return response.json()
+        except httpx.HTTPStatusError as e:
+            print(f"HTTP error occurred: {e.response.status_code} - {e.response.text}")
+        except Exception as e:
+            print(f"An error occurred: {str(e)}")
+
+
+async def patch_record(url: str, args):
+    payload = json.dumps(args, ensure_ascii=False)
+
+    async with httpx.AsyncClient() as client:
+        try:
+            response = await client.patch(url, content=payload, headers={"Content-Type": "application/json"})
+            response.raise_for_status()
+            return response.json()
+        except httpx.HTTPStatusError as e:
+            print(f"HTTP error occurred: {e.response.status_code} - {e.response.text}")
+        except Exception as e:
+            print(f"An error occurred: {str(e)}")
 
 
 class APIClient:

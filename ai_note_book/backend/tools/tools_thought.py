@@ -16,7 +16,7 @@ tool_thought_step = [{
     "type": "function",
     "function": {
         "name": "thought_step",
-        "description": "记录每一次交互后的思路，固定每次收到新信息均需调用",
+        "description": "调用thought_step工具进行思考，记录每一次交互后的思路，固定每次收到新信息均需调用",
         "parameters": {
             "type": "object",
             "properties": {

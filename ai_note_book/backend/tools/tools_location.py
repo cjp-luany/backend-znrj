@@ -5,7 +5,7 @@ tecent_map_api_key = 'ESPBZ-WDHKQ-MBD5P-BWOB2-NZYYV-6EBP4'
 
 def get_current_location():
     """获取经纬度"""
-    response = requests.get("http://127.0.0.1:6202/get_lat_longit/") 
+    response = requests.get("http://127.0.0.1:6201/get_lat_longit/")
     # print(response.content)
     res_json = response.json()
     if response.status_code == 200:  
