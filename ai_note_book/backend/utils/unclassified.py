@@ -1,5 +1,6 @@
 import json
-from datetime import time, datetime
+import time
+from datetime import  datetime
 import requests
 
 tecent_map_api_key = 'ESPBZ-WDHKQ-MBD5P-BWOB2-NZYYV-6EBP4'
@@ -260,3 +261,110 @@ def get_location_summary(keyword):
     #     return f"{location_text}"
     # else:
     #     return location_text
+
+
+tool_sql_insert = [{
+    "type": "function",
+    "function": {
+        "name": "sql_insert",
+        "description": "使用此工具插入新的事件记录",
+        "parameters": {
+            "type": "object",
+            "properties": {
+                "target_time": {
+                    "type": "string",
+                    "description": "[目标时间]，格式DateTime为 'YYYY-MM-DD HH:MM:SS'，如果无相关信息，则为空值。"
+                },
+                "finish_time": {
+                    "type": "string",
+                    "description": "[结束时间]，格式DateTime为 'YYYY-MM-DD HH:MM:SS'，如果无相关信息，则为空值。"
+                },
+                "wake_time": {
+                    "type": "string",
+                    "description": "[提醒时间]，格式DateTime为 'YYYY-MM-DD HH:MM:SS'，如果无相关信息，则为空值。"
+                },
+                "record_descrpt": {
+                    "type": "string",
+                    "description": "[事件总结]"
+                },
+                "record_status": {
+                    "type": "string",
+                    "description": "[事件状态]，分为“未完成”/“完成”/“记事”/“取消”，不可为空值。"
+                },
+                "image_descrpt": {
+                    "type": "string",
+                    "description": "[图片描述]，如果无相关信息，则为空值。"
+                },
+                "image_id": {
+                    "type": "string",
+                    "description": "[图片ID]，如果无相关信息，则为空值。"
+                },
+                "record_cls": {
+                    "type": "string",
+                    "description": "[记录类别]，表示事件的类别。如果无相关信息，则为空值。"
+                }
+            },
+            "required": [
+                "target_time",
+                "finish_time",
+                "wake_time",
+                "record_descrpt",
+                "record_status",
+                "image_descrpt",
+                "image_id",
+                "record_cls"
+            ],
+            "additionalProperties": False
+        },
+    }
+}]
+
+tool_sql_update = [{
+    "type": "function",
+    "function": {
+        "name": "sql_update",
+        "description": "使用此工具更新事件记录的字段，只能以记录唯一标识record_id为定位条件，支持批量更新。",
+        "parameters": {
+            "type": "object",
+            "properties": {
+                "record_ids": {
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    },
+                    "description": "要更新的记录的唯一标识record_id列表。"
+                },
+                "target_time": {
+                    "type": "string",
+                    "description": "[目标时间]，格式为 'YYYY-MM-DD HH:MM:SS'。如果不修改此字段，可以不传此参数。"
+                },
+                "finish_time": {
+                    "type": "string",
+                    "description": "[结束时间]，格式为 'YYYY-MM-DD HH:MM:SS'。如果不修改此字段，可以不传此参数。"
+                },
+                "wake_time": {
+                    "type": "string",
+                    "description": "[提醒时间]，格式为 'YYYY-MM-DD HH:MM:SS'。如果不修改此字段，可以不传此参数。"
+                },
+                "record_descrpt": {
+                    "type": "string",
+                    "description": "[事件总结]。如果不修改此字段，可以不传此参数。"
+                },
+                "record_status": {
+                    "type": "string",
+                    "description": "[事件状态]，分为“未完成”/“完成”/“记事”/“取消”。如果不修改此字段，可以不传此参数。"
+                },
+                "image_descrpt": {
+                    "type": "string",
+                    "description": "[图片描述]，如果不修改此字段，可以不传此参数。"
+                },
+                "record_cls": {
+                    "type": "string",
+                    "description": "[记录类别]，表示事件的类别。如果不修改此字段，可以不传此参数。"
+                }
+            },
+            "required": ["record_ids"],
+            "additionalProperties": False
+        },
+    }
+}]

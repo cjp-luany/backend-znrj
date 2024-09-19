@@ -4,24 +4,31 @@ import json
 import httpx
 from dotenv import load_dotenv, find_dotenv
 from openai.types.chat import ChatCompletionMessageToolCall
+
+
 from utils import unclassified
 
 from crud.models import RecordItemCreateSchema
-from tools.tools_general import *
-from tools.tools_sql_operate import *
-from tools.tools_thought import *
-from tools.tools_location import *
+
+# from tools.tools_general import *
+# from tools.tools_sql_operate import *
+# from tools.tools_thought import *
+# from tools.tools_location import *
+
 from tools.tools_search import *
 from pydantic import BaseModel
 import threading
 
 from utils.api_client import client_post, client_patch
+from utils.unclassified import get_current_time, print_json, thought_step
 
 client = OpenAI()
-with open(os.path.join(PARENT_DIR, "prompt\\agent_prompt.txt"), 'r', encoding='utf-8') as file:
+path_prompt = os.path.join(PARENT_DIR, "prompt")
+
+with open(os.path.join(path_prompt, "agent_prompt.txt"), 'r', encoding='utf-8') as file:
     system_message_content = file.read()
 
-tools = tools_thought + tools_sql_operate + tool_sql_search
+tools_array = unclassified.tool_thought_step + unclassified.tool_sql_insert + unclassified.tool_sql_update + tool_sql_search
 
 chat_histories = {}
 
@@ -40,7 +47,7 @@ def get_completion(messages, model="qwen-plus"):
         model=model,
         messages=messages,
         temperature=0,
-        tools=tools,
+        tools=tools_array,
     )
     return response.choices[0].message
 
@@ -67,6 +74,14 @@ def reset_clear_timer(user_id):
 
 
 def get_params_by_chat(function_name, args):
+    """ 将 Function Call 输出的 args 转换成网络请求的参数
+    参数：
+        function_name (str): Function Call 函数名，
+        args (dict): Function Call 输出的args
+    返回值：
+        args | custom_dict (dict): args合并自定义参数，获得网络请求需要的参数
+    """
+
     _copy = {}
     try:
         _copy = args.copy()
@@ -118,6 +133,13 @@ def get_params_by_chat(function_name, args):
 
 
 def tool_calls_handler(tool: ChatCompletionMessageToolCall):
+    """ 调用大模型输出的 tool 进行 Function Call，执行工具函数
+       参数：
+           tool (class): Openai 通过对话历史返回的tool对象
+       返回值：
+           chat_histories: 对话历史通过对话函数的循环输出
+    """
+
     try:
         arguments = tool.function.arguments
         args = json.loads(arguments)
@@ -145,10 +167,7 @@ def tool_calls_handler(tool: ChatCompletionMessageToolCall):
             )
 
             print(f"{user_id}====Filtered Records====")
-            if isinstance(result, str):
-                print(result)
-            else:
-                print_json(result)
+            print_json(result)
 
         elif tool.function.name == "thought_step":
             result = thought_step(args)
@@ -170,6 +189,8 @@ def tool_calls_handler(tool: ChatCompletionMessageToolCall):
 
 
 def chat_warpper(user_id):
+
+
     if user_id not in chat_histories:
         chat_histories[user_id] = {
             "chat_history": [{"role": "system", "content": system_message_content}],
@@ -179,6 +200,15 @@ def chat_warpper(user_id):
     current_time, weekday_name = get_current_time()
 
     def chat(user_input, latitude, longitude):
+        """ 对话函数，一直循环对话，使用CoT
+           参数：
+               user_input : 用户输入
+               latitude : 纬度 0,90
+               longitude : 经度 -180,180
+           返回值：
+               chat_histories: 输出对话历史最后一条对话（系统返回）
+        """
+
         # reset_clear_timer(user_id)
         message = {"role": "user", "content": f"当前时间为{current_time}，{weekday_name}\n\n{user_input}"}
         chat_histories[user_id]["chat_history"].append(message)
@@ -208,6 +238,16 @@ def chat_warpper(user_id):
 
 
 def start_loop(query_value: Query):
+    """ 对话函数，一直循环对话，使用CoT
+       参数：
+           query : 用户输入
+           latitude : 纬度 0,90
+           longitude : 经度 -180,180
+           user_id : 用户id
+       返回值：
+           response: 输出对话回答
+    """
+
     query_dic = query_value.dict()
     global latitude, longitude, user_id
 
