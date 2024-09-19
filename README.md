@@ -90,3 +90,9 @@ backend znrj python
     * vue->NaiveUI ? tailwind
     * markdown语法->生成文档
     * uniapp ？wx-gongzhonghao
+
+#### weekly问题汇总
+1. 2024-09-19
+   * 问题：如何实现多用户对话隔离？
+   * 解决：使用fastapi的依赖注入，每个用户的对话都是一个独立的对象，通过依赖注入的方式，将用户的对话对象注入到对话服务中，实现对话隔离。
+2. 

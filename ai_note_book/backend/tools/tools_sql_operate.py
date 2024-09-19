@@ -283,7 +283,6 @@ tool_sql_update = [{
 
 
 
-
 # ANYTHINGLLM_TOKEN = "A6WW35F-A6RMWBH-PWRQJV3-5DT5DYS"  # this is server anything llm token
 # ISRAG_WORKSPACE_NAME = "israg"
 # NORAG_WORKSPACE_NAME = "norag"

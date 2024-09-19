@@ -15,7 +15,7 @@ from pydantic import BaseModel
 import threading
 
 client = OpenAI()
-with open(os.path.join(CUR_DIR, "prompt/agent_prompt.txt"), 'r', encoding='utf-8') as file:
+with open(os.path.join(PARENT_DIR, "prompt\\agent_prompt.txt"), 'r', encoding='utf-8') as file:
     system_message_content = file.read()
 
 tools = tools_thought + tools_sql_operate + tool_sql_search
@@ -53,13 +53,14 @@ def clear_chat_history(user_id):
 
 def reset_clear_timer(user_id):
     """ 依赖：chat_histories """
-
-    if user_id in chat_histories:
-        if chat_histories[user_id].get('timer'):
-            chat_histories[user_id]['timer'].cancel()
-        chat_histories[user_id]['timer'] = threading.Timer(300, clear_chat_history, args=[user_id])
-        chat_histories[user_id]['timer'].start()
-
+    try:
+        if user_id in chat_histories:
+            if chat_histories[user_id].get('timer'):
+                chat_histories[user_id]['timer'].cancel()
+            chat_histories[user_id]['timer'] = threading.Timer(300, clear_chat_history, args=[user_id])
+            chat_histories[user_id]['timer'].start()
+    except Exception as e:
+        print({e})
 
 async def post_record(url: str, args):
     payload = json.dumps(args)
@@ -75,7 +76,7 @@ async def post_record(url: str, args):
             print(f"An error occurred: {str(e)}")
 
 
-def params_handler_by_function_name(function_name, args):
+def chat_args_2_url_params(function_name, args):
     if function_name == "sql_insert":
         return args
 
@@ -100,12 +101,12 @@ def tool_calls_handler(tool: ChatCompletionMessageToolCall):
         result = None
 
         if tool.function.name == "sql_insert":
-            params = params_handler_by_function_name(tool.function.name, args)
+            params = chat_args_2_url_params(tool.function.name, args)
             asyncio.run(post_record("http://127.0.0.1:6201/api/record/create", params))
             result = f"记录已成功插入,record_id为"  # {unique_id}
 
         elif tool.function.name == "sql_update":
-            params = params_handler_by_function_name(tool.function.name, args)
+            params = chat_args_2_url_params(tool.function.name, args)
             asyncio.run(post_record(f"http://127.0.0.1:6201/api/record/update/{params.record_id}", params))
             result = "记录已成功更新"
 
@@ -149,7 +150,7 @@ def chat_warpper(user_id):
     current_time, weekday_name = get_current_time()
 
     def chat(user_input, latitude, longitude):
-        reset_clear_timer(user_id)
+        # reset_clear_timer(user_id)
         message = {"role": "user", "content": f"当前时间为{current_time}，{weekday_name}\n\n{user_input}"}
         chat_histories[user_id]["chat_history"].append(message)
 
@@ -164,8 +165,8 @@ def chat_warpper(user_id):
             if response.tool_calls:
                 for tool in response.tool_calls:
                     """ TODO: 完成逻辑 """
-                    tool_calls_handler(tool)
-                    continue
+                    # tool_calls_handler(tool)
+                    # continue
 
                     if tool.function.name == "sql_insert":  # 新添加的elif条件
                         tool_call = response.tool_calls[0]

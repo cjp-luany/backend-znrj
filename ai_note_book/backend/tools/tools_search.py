@@ -1,4 +1,6 @@
 import os
+
+from dotenv import load_dotenv
 from sklearn.metrics.pairwise import cosine_similarity
 from sqlalchemy import create_engine, text
 from sqlalchemy.orm import sessionmaker
@@ -15,11 +17,30 @@ from openai import OpenAI
 import uuid
 from datetime import datetime
 from sqlalchemy import text
-from api import RecordItem
+
 from tools.tools_location import get_current_location, get_current_location_name  # 假设位置工具导入
 from tools.tools_general import get_time  # 假设时间工具导入
 
 
+load_dotenv()
+
+
+class RecordItem():
+    id = Column(String, primary_key=True)
+    record_time = Column(DateTime)
+    record_location_name = Column(String)
+    record_location = Column(String)
+    target_time = Column(DateTime)
+    target_location_name = Column(String)
+    target_location = Column(String)
+    finish_time = Column(DateTime)
+    wake_time = Column(DateTime)
+    wake_location_name = Column(String)
+    wake_location = Column(String)
+    record_descrpt = Column(String, default="")
+    record_status = Column(Boolean, default=0)
+    image_descrpt = Column(String, default="")
+    image_id = Column(String, default="")
 
 # 数据库连接
 CUR_DIR = os.path.realpath(os.path.dirname(__file__))

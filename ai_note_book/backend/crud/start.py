@@ -3,7 +3,6 @@ import os
 from fastapi import FastAPI, Depends
 from fastapi.middleware.cors import CORSMiddleware
 from fastcrud import FastCRUD, crud_router
-from pydantic import BaseModel
 from sqlalchemy.ext.asyncio import AsyncSession
 
 import service.calendar
@@ -35,9 +34,10 @@ api.add_middleware(
     allow_headers=["*"],
 )
 
+
+""" RECORD MODEL """
 # CRUD operations setup
 crud_record = FastCRUD(RecordItem)
-crud_image = FastCRUD(ImageItem)
 
 # CRUD router setup
 record_item_router = crud_router(
@@ -51,6 +51,10 @@ record_item_router = crud_router(
 
 api.include_router(record_item_router)
 
+
+""" IMAGE MODEL """
+crud_image = FastCRUD(ImageItem)
+
 image_item_router = crud_router(
     session=get_session,
     model=ImageItem,
@@ -61,6 +65,7 @@ image_item_router = crud_router(
 )
 
 api.include_router(image_item_router)
+
 
 """ customize async methods """
 

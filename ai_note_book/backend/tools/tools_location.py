@@ -1,6 +1,6 @@
 import requests
-from ENV import tecent_map_api_key
-# tecent_map_api_key = 'ESPBZ-WDHKQ-MBD5P-BWOB2-NZYYV-6EBP4'
+# from ENV import tecent_map_api_key
+tecent_map_api_key = 'ESPBZ-WDHKQ-MBD5P-BWOB2-NZYYV-6EBP4'
 #======获取当前坐标======
 
 def get_current_location():

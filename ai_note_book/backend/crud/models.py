@@ -130,10 +130,6 @@ class ImageItemUpdateSchema(BaseModel):
     image_code: str
 
 
-# 上传图片模型
-class UploadImageItem(BaseModel):
-    img_base64: str
-
 
 class UserItem(Base):
     __tablename__ = 'user_data'
