@@ -15,7 +15,7 @@ from tools.tools_search import *
 from pydantic import BaseModel
 import threading
 
-from utils.api_client import post_record, patch_record
+from utils.api_client import client_post, client_patch
 
 client = OpenAI()
 with open(os.path.join(PARENT_DIR, "prompt\\agent_prompt.txt"), 'r', encoding='utf-8') as file:
@@ -127,14 +127,14 @@ def tool_calls_handler(tool: ChatCompletionMessageToolCall):
 
         if tool.function.name == "sql_insert":
             params = get_params_by_chat(tool.function.name, args)
-            asyncio.run(post_record("http://127.0.0.1:6201/api/record/create", params))
+            asyncio.run(client_post("http://127.0.0.1:6201/api/record/create", params))
             # response.json()["record_id"] 有id但是需要用其他方法从异步获取结果
             result = f"记录已成功插入,record_id为"  # {unique_id}
 
         elif tool.function.name == "sql_update":
             params = get_params_by_chat(tool.function.name, args)
             for record_id in params["record_ids"]:
-                asyncio.run(patch_record(f"http://127.0.0.1:6201/api/record/update/{record_id}", params))
+                asyncio.run(client_patch(f"http://127.0.0.1:6201/api/record/update/{record_id}", params))
             result = "记录已成功更新"
 
         elif tool.function.name == "sql_search":
