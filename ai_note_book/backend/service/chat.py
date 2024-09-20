@@ -1,26 +1,17 @@
 import asyncio
 import json
-
-import httpx
-from dotenv import load_dotenv, find_dotenv
-from openai.types.chat import ChatCompletionMessageToolCall
-
-
-from utils import unclassified
-
-from crud.models import RecordItemCreateSchema
-
-# from tools.tools_general import *
-# from tools.tools_sql_operate import *
-# from tools.tools_thought import *
-# from tools.tools_location import *
-
-from tools.tools_search import *
-from pydantic import BaseModel
+import os
 import threading
 
+import requests
+from openai.types.chat import ChatCompletionMessageToolCall
+from pydantic import BaseModel
+
+from service.function_call import fc_thought_step, fc_sql_insert, fc_sql_update, fc_sql_search
+from service.search import OpenAI, PARENT_DIR, sql_search
 from utils.api_client import client_post, client_patch
-from utils.unclassified import get_current_time, print_json, thought_step
+from utils.unclassified import get_current_time, print_json, thought_step, get_current_location_name, \
+    get_current_location
 
 client = OpenAI()
 path_prompt = os.path.join(PARENT_DIR, "prompt")
@@ -28,7 +19,7 @@ path_prompt = os.path.join(PARENT_DIR, "prompt")
 with open(os.path.join(path_prompt, "agent_prompt.txt"), 'r', encoding='utf-8') as file:
     system_message_content = file.read()
 
-tools_array = unclassified.tool_thought_step + unclassified.tool_sql_insert + unclassified.tool_sql_update + tool_sql_search
+chat_tools = fc_thought_step + fc_sql_insert + fc_sql_update + fc_sql_search
 
 chat_histories = {}
 
@@ -47,7 +38,7 @@ def get_completion(messages, model="qwen-plus"):
         model=model,
         messages=messages,
         temperature=0,
-        tools=tools_array,
+        tools=chat_tools,
     )
     return response.choices[0].message
 
@@ -189,8 +180,6 @@ def tool_calls_handler(tool: ChatCompletionMessageToolCall):
 
 
 def chat_warpper(user_id):
-
-
     if user_id not in chat_histories:
         chat_histories[user_id] = {
             "chat_history": [{"role": "system", "content": system_message_content}],

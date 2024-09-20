@@ -78,8 +78,8 @@ class RecordItemCreateSchema(BaseModel):
     wake_time: datetime
     record_descrpt: str
     record_status: str
-    image_descrpt: str
-    image_id: str
+    image_descrpt: str | None = None
+    image_id: str | None = None
     user_id: str
 
 

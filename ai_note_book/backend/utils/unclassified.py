@@ -1,113 +1,9 @@
 import json
 import time
-from datetime import  datetime
+from datetime import datetime
 import requests
 
 tecent_map_api_key = 'ESPBZ-WDHKQ-MBD5P-BWOB2-NZYYV-6EBP4'
-
-thought_step_string = """
-1. 结合关键概念，我收集到什么信息？
-2. 下一步我要达到什么目标？
-3. 基于下一步目标我要做什么？（比如调用什么工具或是与用户沟通什么内容）
-"""
-
-tool_thought_step = [{
-    "type": "function",
-    "function": {
-        "name": "thought_step",
-        "description": "记录每一次交互后的思路，固定每次收到新信息均需调用",
-        "parameters": {
-            "type": "object",
-            "properties": {
-                "query": {
-                    "type": "string",
-                    "description": f"""
-                        按以下标准模板思考，并一步步输出每一项:
-                        {thought_step_string}
-                        """,
-                },
-            },
-            "required": ["query"],
-            "additionalProperties": False
-        },
-    }
-}]
-
-tool_get_current_time = [{
-    "type": "function",
-    "function": {
-        "name": "get_current_time",
-        "description": "获取当前时间与星期几",
-        "parameters": {
-            "type": "object",
-            "properties": {
-                "message": {
-                    "type": "string",
-                    "description": "无需传入参数",
-                },
-            },
-            "required": ["message"],
-            "additionalProperties": False
-        },
-    }
-}]
-
-tool_get_current_location = [{
-    "type": "function",
-    "function": {
-        "name": "get_current_location",
-        "description": "获取当前位置信息的经纬度",
-        "parameters": {
-            "type": "object",
-            "properties": {
-                "query_msg": {
-                    "type": "string",
-                    "description": "默认ask",
-                },
-            },
-            "required": ["query_msg"],
-            "additionalProperties": False
-        },
-    }
-}]
-
-tool_get_current_location_name = [{
-    "type": "function",
-    "function": {
-        "name": "get_current_location_name",
-        "description": "获取当前位置描述",
-        "parameters": {
-            "type": "object",
-            "properties": {
-                "query_msg": {
-                    "type": "string",
-                    "description": "默认ask",
-                },
-            },
-            "required": ["query_msg"],
-            "additionalProperties": False
-        },
-    }
-}]
-
-tool_get_location_summary = [{
-    "type": "function",
-    "function": {
-        "name": "get_location_summary",
-        "description": "查询位置信息，只传入地点描述的文本，不要传入任何其他参数。该工具已封装了用户位置信息，你无需额外获取。",
-        "parameters": {
-            "type": "object",
-            "properties": {
-                "query_msg": {
-                    "type": "string",
-                    "description": "将用户查询的地点的描述文本传入",
-                },
-            },
-            "required": ["query_msg"],
-            "additionalProperties": False
-        },
-    }
-}]
 
 
 def print_json(data):
@@ -156,26 +52,6 @@ def get_current_time():
     weekday_name = datetime.now().strftime("%A")
     return current_time, weekday_name
 
-tool_get_current_time = [{
-    "type": "function",
-    "function": {
-        "name": "get_current_time",
-        "description": "获取当前时间与星期几",
-        "parameters": {
-            "type": "object",
-            "properties": {
-                "message": {
-                    "type": "string",
-                    "description": "无需传入参数",
-                },
-            },
-            "required": ["message"],
-            "additionalProperties": False
-        },
-    }
-}]
-
-
 
 def thought_step(query):
     return query
@@ -187,7 +63,7 @@ def thought_key_record(query):
 
 def get_current_location():
     """获取经纬度"""
-    response = requests.get("http://127.0.0.1:6202/get_lat_longit/")
+    response = requests.get("http://127.0.0.1:6201/get_lat_longit/")
     # print(response.content)
     res_json = response.json()
     if response.status_code == 200:
@@ -261,110 +137,3 @@ def get_location_summary(keyword):
     #     return f"{location_text}"
     # else:
     #     return location_text
-
-
-tool_sql_insert = [{
-    "type": "function",
-    "function": {
-        "name": "sql_insert",
-        "description": "使用此工具插入新的事件记录",
-        "parameters": {
-            "type": "object",
-            "properties": {
-                "target_time": {
-                    "type": "string",
-                    "description": "[目标时间]，格式DateTime为 'YYYY-MM-DD HH:MM:SS'，如果无相关信息，则为空值。"
-                },
-                "finish_time": {
-                    "type": "string",
-                    "description": "[结束时间]，格式DateTime为 'YYYY-MM-DD HH:MM:SS'，如果无相关信息，则为空值。"
-                },
-                "wake_time": {
-                    "type": "string",
-                    "description": "[提醒时间]，格式DateTime为 'YYYY-MM-DD HH:MM:SS'，如果无相关信息，则为空值。"
-                },
-                "record_descrpt": {
-                    "type": "string",
-                    "description": "[事件总结]"
-                },
-                "record_status": {
-                    "type": "string",
-                    "description": "[事件状态]，分为“未完成”/“完成”/“记事”/“取消”，不可为空值。"
-                },
-                "image_descrpt": {
-                    "type": "string",
-                    "description": "[图片描述]，如果无相关信息，则为空值。"
-                },
-                "image_id": {
-                    "type": "string",
-                    "description": "[图片ID]，如果无相关信息，则为空值。"
-                },
-                "record_cls": {
-                    "type": "string",
-                    "description": "[记录类别]，表示事件的类别。如果无相关信息，则为空值。"
-                }
-            },
-            "required": [
-                "target_time",
-                "finish_time",
-                "wake_time",
-                "record_descrpt",
-                "record_status",
-                "image_descrpt",
-                "image_id",
-                "record_cls"
-            ],
-            "additionalProperties": False
-        },
-    }
-}]
-
-tool_sql_update = [{
-    "type": "function",
-    "function": {
-        "name": "sql_update",
-        "description": "使用此工具更新事件记录的字段，只能以记录唯一标识record_id为定位条件，支持批量更新。",
-        "parameters": {
-            "type": "object",
-            "properties": {
-                "record_ids": {
-                    "type": "array",
-                    "items": {
-                        "type": "string"
-                    },
-                    "description": "要更新的记录的唯一标识record_id列表。"
-                },
-                "target_time": {
-                    "type": "string",
-                    "description": "[目标时间]，格式为 'YYYY-MM-DD HH:MM:SS'。如果不修改此字段，可以不传此参数。"
-                },
-                "finish_time": {
-                    "type": "string",
-                    "description": "[结束时间]，格式为 'YYYY-MM-DD HH:MM:SS'。如果不修改此字段，可以不传此参数。"
-                },
-                "wake_time": {
-                    "type": "string",
-                    "description": "[提醒时间]，格式为 'YYYY-MM-DD HH:MM:SS'。如果不修改此字段，可以不传此参数。"
-                },
-                "record_descrpt": {
-                    "type": "string",
-                    "description": "[事件总结]。如果不修改此字段，可以不传此参数。"
-                },
-                "record_status": {
-                    "type": "string",
-                    "description": "[事件状态]，分为“未完成”/“完成”/“记事”/“取消”。如果不修改此字段，可以不传此参数。"
-                },
-                "image_descrpt": {
-                    "type": "string",
-                    "description": "[图片描述]，如果不修改此字段，可以不传此参数。"
-                },
-                "record_cls": {
-                    "type": "string",
-                    "description": "[记录类别]，表示事件的类别。如果不修改此字段，可以不传此参数。"
-                }
-            },
-            "required": ["record_ids"],
-            "additionalProperties": False
-        },
-    }
-}]

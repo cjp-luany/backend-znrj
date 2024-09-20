@@ -22,9 +22,7 @@ from crud.models import RecordItem
 from tools.tools_location import get_current_location, get_current_location_name  # 假设位置工具导入
 from tools.tools_general import get_time  # 假设时间工具导入
 
-
 load_dotenv()
-
 
 # 数据库连接
 CUR_DIR = os.path.realpath(os.path.dirname(__file__))
@@ -45,6 +43,7 @@ session = Session()
 api = FastAPI()
 client = OpenAI()
 
+
 database_update_schema_string = """
     --记录列名：record_cls，格式：STR，描述：[记录类别],包含会议、记录、待办、想法
     --记录列名：record_time，格式：DATETIME，描述：一件事被用户记录的时间,格式为YYYY-MM-DD hh:mm:ss
@@ -56,9 +55,40 @@ database_update_schema_string = """
     --记录列名：record_status，格式：STR，描述：[事件状态]，分为“未完成”/“完成”/“记事”/“取消”
     --记录列名：image_descrpt，格式：STR，描述：[图片描述]，如用户未提及则为Null"""
 
+tool_sql_search = [{
+    "type": "function",
+    "function": {
+        "name": "sql_search",
+        "description": "在数据库中根据用户的查询条件返回符合条件的记录描述。工具会根据查询内容自动选择合适的查询路径（SQL查询或RAG召回），并最终返回格式化的记录描述。",
+        "parameters": {
+            "type": "object",
+            "properties": {
+                "query": {
+                    "type": "string",
+                    "description": f"""
+                        用户查询条件中事件描述以外的部分（例如时间、地点、状态等）。该字段应仅包含WHERE子句中的条件内容。
+                        如果用户只提供了事件描述，则此字段可以为空。数据库结构为{database_update_schema_string}。
+                    """,
+                },
+                "record_descrpt": {
+                    "type": "string",
+                    "description": """
+                        用户查询中的事件描述部分。如果用户提供了事件描述内容（例如查询有没有关于什么的事情，有没有人欠我钱等），系统会使用RAG路径查找与该描述最相似的记录。
+                        如果事件描述与其他查询条件同时存在，系统会将两者组合以进行最终查询。
+                    """,
+                }
+            },
+            "required": [],
+            "additionalProperties": False
+        },
+    }
+}]
+
+
 def get_user_id():
     response = requests.get("http://127.0.0.1:6201/get_user_id/")
     return response.json()
+
 
 def summarize_records(data_list):
     """
@@ -84,12 +114,14 @@ def summarize_records(data_list):
         new_data_list.append(summary)
     return new_data_list
 
+
 def sql_get_records(query):
     user_id = get_user_id()
     full_query = f"user_id = '{user_id}' AND {query}"  # 强制包含 user_id 条件
     results = session.query(RecordItem).filter(text(full_query)).all()
     data_list = [record.__dict__ for record in results]
     return data_list
+
 
 def get_all_record_descrpt(user_id):
     """
@@ -98,6 +130,7 @@ def get_all_record_descrpt(user_id):
     query = f"user_id = '{user_id}'"
     results = session.query(RecordItem).filter(text(query)).all()
     return [{"record_descrpt": record.record_descrpt} for record in results]
+
 
 def find_similar_records_from_memory(record_descrpt_list, query, similarity_threshold=0.6):
     """
@@ -138,6 +171,7 @@ def find_similar_records_from_memory(record_descrpt_list, query, similarity_thre
 
     return similar_records
 
+
 def sql_search(query=None, record_descrpt=None):
     """
     根据条件查询数据库，并使用 summarize_records 返回结果。
@@ -175,33 +209,3 @@ def sql_search(query=None, record_descrpt=None):
 
     summarized_data = summarize_records(data_list)
     return summarized_data
-
-
-tool_sql_search = [{
-    "type": "function",
-    "function": {
-        "name": "sql_search",
-        "description": "在数据库中根据用户的查询条件返回符合条件的记录描述。工具会根据查询内容自动选择合适的查询路径（SQL查询或RAG召回），并最终返回格式化的记录描述。",
-        "parameters": {
-            "type": "object",
-            "properties": {
-                "query": {
-                    "type": "string",
-                    "description": f"""
-                        用户查询条件中事件描述以外的部分（例如时间、地点、状态等）。该字段应仅包含WHERE子句中的条件内容。
-                        如果用户只提供了事件描述，则此字段可以为空。数据库结构为{database_update_schema_string}。
-                    """,
-                },
-                "record_descrpt": {
-                    "type": "string",
-                    "description": """
-                        用户查询中的事件描述部分。如果用户提供了事件描述内容（例如查询有没有关于什么的事情，有没有人欠我钱等），系统会使用RAG路径查找与该描述最相似的记录。
-                        如果事件描述与其他查询条件同时存在，系统会将两者组合以进行最终查询。
-                    """,
-                }
-            },
-            "required": [],
-            "additionalProperties": False
-        },
-    }
-}]
