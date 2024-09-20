@@ -10,9 +10,3 @@ if __name__ == '__main__':
 
     crud_thread = threading.Thread(target=crud_start)
     crud_thread.start()
-
-    # thread_test = Thread(target=run_fastapi2)
-    # thread_test.start()
-
-    # thread_query = Thread(target=run_fastapi3)
-    # thread_query.start()

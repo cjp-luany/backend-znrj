@@ -2,6 +2,7 @@ import asyncio
 import json
 import os
 import threading
+import time
 
 import requests
 from openai.types.chat import ChatCompletionMessageToolCall
@@ -33,14 +34,16 @@ class Query(BaseModel):
 
 def get_completion(messages, model="qwen-plus"):
     """ 依赖：OpenAI """
-
-    response = client.chat.completions.create(
-        model=model,
-        messages=messages,
-        temperature=0,
-        tools=chat_tools,
-    )
-    return response.choices[0].message
+    try:
+        response = client.chat.completions.create(
+            model=model,
+            messages=messages,
+            temperature=0,
+            tools=chat_tools,
+        )
+        return response.choices[0].message
+    except Exception as e:
+        print({e})
 
 
 def clear_chat_history(user_id):
@@ -201,6 +204,12 @@ def chat_warpper(user_id):
         # reset_clear_timer(user_id)
         message = {"role": "user", "content": f"当前时间为{current_time}，{weekday_name}\n\n{user_input}"}
         chat_histories[user_id]["chat_history"].append(message)
+
+        """ TODO：进行对话循环的多线程改写 
+                    可以先将循环注释，打开下面两行，是可以多线程的
+        """
+        # time.sleep(3)
+        # return user_id
 
         while True:
             print(f"{user_id}=====本轮回复=====")

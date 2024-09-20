@@ -57,10 +57,6 @@ def thought_step(query):
     return query
 
 
-def thought_key_record(query):
-    return query
-
-
 def get_current_location():
     """获取经纬度"""
     response = requests.get("http://127.0.0.1:6201/get_lat_longit/")

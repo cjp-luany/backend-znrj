@@ -37,6 +37,20 @@ async def lifespan(app: FastAPI):
     yield
 
 
+def process_time_field(target, time_field):
+    time_value = getattr(target, time_field, None)
+
+    if not time_value:  # 空字符串和 None 都会被处理
+        setattr(target, time_field, None)
+    elif isinstance(time_value, str):
+        try:
+            parsed_time = datetime.strptime(time_value, "%Y-%m-%d %H:%M:%S")
+            setattr(target, time_field, parsed_time)
+        except ValueError:
+            print(f"Invalid datetime format for {time_field}: {time_value}")
+            setattr(target, time_field, None)
+
+
 class Base(DeclarativeBase):
     pass
 
@@ -61,23 +75,37 @@ class RecordItem(Base):
     def set_default(mapper, connection, target):
         if target.record_id is None:
             target.record_id = str(uuid.uuid4())  # python_get_now_timespan
-        if target.finish_time == "":
-            target.finish_time = None
+
+        if isinstance(target.record_time, str):
+            try:
+                target.record_time = datetime.strptime(target.record_time, "%Y-%m-%d %H:%M:%S")
+            except ValueError:
+                print(f"Invalid datetime format for record_time: {target.record_time}")
+                target.record_time = None
+
+        # 检查并转换 target_time
+        process_time_field(target, 'target_time')
+
+        # 检查并转换 finish_time
+        process_time_field(target, 'finish_time')
+
+        # 检查并转换 wake_time
+        process_time_field(target, 'wake_time')
 
 
 event.listen(RecordItem, 'before_insert', RecordItem.set_default)
 
 
 class RecordItemCreateSchema(BaseModel):
-    record_time: datetime
-    record_location_name: str
-    record_location: str
+    record_time: datetime | str
+    record_location_name: str | None = None
+    record_location: str | None = None
     record_cls: str
-    target_time: datetime
-    finish_time: datetime | str
-    wake_time: datetime
-    record_descrpt: str
-    record_status: str
+    target_time: datetime | str | None = None
+    finish_time: datetime | str | None = None
+    wake_time: datetime | str | None = None
+    record_descrpt: str | None = None
+    record_status: str | None = None
     image_descrpt: str | None = None
     image_id: str | None = None
     user_id: str
@@ -125,7 +153,6 @@ class ImageItemCreateSchema(BaseModel):
 class ImageItemUpdateSchema(BaseModel):
     image_descrpt: str
     image_code: str
-
 
 
 class UserItem(Base):
