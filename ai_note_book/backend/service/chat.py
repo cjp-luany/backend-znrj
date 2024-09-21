@@ -3,6 +3,7 @@ import json
 import os
 import threading
 import time
+from functools import wraps
 
 import requests
 from openai.types.chat import ChatCompletionMessageToolCall
@@ -23,7 +24,7 @@ with open(os.path.join(path_prompt, "agent_prompt.txt"), 'r', encoding='utf-8') 
 chat_tools = fc_thought_step + fc_sql_insert + fc_sql_update + fc_sql_search
 
 chat_histories = {}
-
+chat_histories_lock = threading.Lock()
 
 class Query(BaseModel):
     query: str
@@ -182,7 +183,137 @@ def tool_calls_handler(tool: ChatCompletionMessageToolCall):
         print({e.__class__.__name__: str(e)})
 
 
-def chat_warpper(user_id):
+def threaded_chat(func):
+    @wraps(func)
+    def wrapper(user_id, *args, **kwargs):
+        if user_id not in chat_histories:
+            with chat_histories_lock:
+                if user_id not in chat_histories:
+                    chat_histories[user_id] = {
+                        "chat_history": [{"role": "system", "content": system_message_content}],
+                        "timer": None
+                    }
+
+        def process_wrapper():
+            result = func(user_id, *args, **kwargs)
+            return result
+
+        chat_thread = threading.Thread(target=process_wrapper)
+        chat_thread.start()
+        chat_thread.join()
+
+        with chat_histories_lock:
+            # thread chat return
+            return chat_histories[user_id]["chat_history"][-1]["content"]
+
+    return wrapper
+
+
+@threaded_chat
+def chat(user_id, user_input, latitude, longitude):
+    current_time, weekday_name = get_current_time()
+    message = {"role": "user", "content": f"当前时间为 {current_time}，{weekday_name}\\n\\n{user_input}"}
+
+    with chat_histories_lock:
+        chat_histories[user_id]["chat_history"].append(message)
+
+    while True:
+        print(f"{user_id}=====本轮回复=====")
+        response = get_completion(chat_histories[user_id]["chat_history"])
+        if response is None:
+            break
+
+        print_json(response)
+
+        if response.content is None:
+            response.content = ""
+
+        with chat_histories_lock:
+            chat_histories[user_id]["chat_history"].append(response)
+
+        if response.tool_calls:
+            for tool in response.tool_calls:
+                """ 正在调用：Function Call 处理函数 """
+                # time.sleep(3)
+                tool_calls_handler(tool)
+                # return user_id, tool.function.name
+        else:
+            final_message = {"role": "assistant", "content": response.content}
+
+            with chat_histories_lock:
+                chat_histories[user_id]["chat_history"].append(final_message)
+
+            print(f"{user_id}=====最终回复=====")
+            print(response.content)
+            print(f"{user_id}=====chat_history=====")
+            print_json(chat_histories[user_id]["chat_history"])
+            break
+
+    return chat_histories[user_id]["chat_history"][-1]["content"]
+
+
+def chat_wrapper(user_id):
+    return lambda *args, **kwargs: chat(user_id, *args, **kwargs)
+
+def start_loop(query_value: Query):
+    """ 对话函数，一直循环对话，使用CoT
+       参数：
+           query : 用户输入
+           latitude : 纬度 0,90
+           longitude : 经度 -180,180
+           user_id : 用户id
+       返回值：
+           response: 输出对话回答
+    """
+
+    query_dic = query_value.dict()
+    global latitude, longitude, user_id
+
+    user_id = query_dic["user_id"]
+
+    if "query" not in query_dic:
+        current_location = get_current_location(query_dic['latitude'], query_dic['longitude'])
+        latitude = query_dic['latitude']
+        longitude = query_dic['longitude']
+    else:
+        latitude = query_dic['latitude']
+        longitude = query_dic['longitude']
+        user1_chat = chat_wrapper(user_id)
+        response = user1_chat(query_dic["query"], latitude, longitude)
+
+    return {"Response": response, 'code': 200}
+
+
+def get_lat_longit_value():
+    """ TODO：优化全局对象管理，使用缓存 [ {userid, model_obejct },...] """
+    return latitude, longitude
+
+
+def get_user_id():
+    return user_id
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+def old_chat_warpper(user_id):
     if user_id not in chat_histories:
         chat_histories[user_id] = {
             "chat_history": [{"role": "system", "content": system_message_content}],
@@ -222,9 +353,11 @@ def chat_warpper(user_id):
             if response.tool_calls:
                 for tool in response.tool_calls:
                     """ 完成：Function Call 处理函数 """
-                    tool_calls_handler(tool)
+                    # tool_calls_handler(tool)
+                    time.sleep(3)
             else:
                 chat_histories[user_id]["chat_history"].append({"role": "assistant", "content": response.content})
+
                 print(f"{user_id}=====最终回复=====")
                 print(response.content)
                 print(f"{user_id}=====chat_history=====")
@@ -233,40 +366,3 @@ def chat_warpper(user_id):
         return chat_histories[user_id]["chat_history"][-1]["content"]
 
     return chat
-
-
-def start_loop(query_value: Query):
-    """ 对话函数，一直循环对话，使用CoT
-       参数：
-           query : 用户输入
-           latitude : 纬度 0,90
-           longitude : 经度 -180,180
-           user_id : 用户id
-       返回值：
-           response: 输出对话回答
-    """
-
-    query_dic = query_value.dict()
-    global latitude, longitude, user_id
-
-    user_id = query_dic["user_id"]
-
-    if "query" not in query_dic:
-        current_location = get_current_location(query_dic['latitude'], query_dic['longitude'])
-        latitude = query_dic['latitude']
-        longitude = query_dic['longitude']
-    else:
-        latitude = query_dic['latitude']
-        longitude = query_dic['longitude']
-        response = chat_warpper(user_id)(query_dic["query"], latitude, longitude)
-
-    return {"Response": response, 'code': 200}
-
-
-def get_lat_longit_value():
-    """ TODO：优化全局对象管理，使用缓存 [ {userid, model_obejct },...] """
-    return latitude, longitude
-
-
-def get_user_id():
-    return user_id

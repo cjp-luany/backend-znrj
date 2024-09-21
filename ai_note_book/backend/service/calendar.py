@@ -79,16 +79,21 @@ async def week_items(db: AsyncSession = Depends(get_session)):
                 # 选取1到16（含）之间的随机整数
                 color_number = random.randint(1, 16)
 
+                minutes_duration = 3600
+
                 # 计算任务完成所需的分钟数
-                duration = item["finish_time"] - item["target_time"]
-                duration_in_s = duration.total_seconds()
-                minutesDuration = divmod(duration_in_s, 60)[0]
+                try:
+                    duration = item["finish_time"] - item["target_time"]
+                    duration_in_s = duration.total_seconds()
+                    minutes_duration = divmod(duration_in_s, 60)[0]
+                except Exception as e:
+                    print({e})
 
                 # 格式化任务信息
                 task = {
                     'textTitle': item['record_descrpt'],
                     'color': color_number,
-                    'minutesDuration': int(minutesDuration),
+                    'minutesDuration': int(minutes_duration),
                     'dateTime': date_item["date"],
                     'hour': item["target_time"].hour,
                     'minute': item["target_time"].minute
