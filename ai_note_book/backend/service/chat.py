@@ -144,7 +144,7 @@ def tool_calls_handler(tool: ChatCompletionMessageToolCall):
 
         if tool.function.name == "sql_insert":
             params = get_params_by_chat(tool.function.name, args)
-            asyncio.run(client_post("http://127.0.0.1:6201/api/record/create", params))
+            # asyncio.run(client_post("http://127.0.0.1:6201/api/record/create", params))
             # response.json()["record_id"] 有id但是需要用其他方法从异步获取结果
             result = f"记录已成功插入,record_id为"  # {unique_id}
 
@@ -170,8 +170,10 @@ def tool_calls_handler(tool: ChatCompletionMessageToolCall):
         elif tool.function.name == "get_current_time":
             result = get_current_time()
 
-        print(f"{user_id}====Result of {tool.function.name}====")
-        print(result)
+        # print(f"{user_id}====Result of {tool.function.name}====")
+        # print(result)
+
+        # TODO: 发现问题，这里append没上锁，导致资源抢占
         chat_histories[user_id]["chat_history"].append({
             "tool_call_id": tool.id,
             "role": "tool",
@@ -204,7 +206,11 @@ def threaded_chat(func):
 
         with chat_histories_lock:
             # thread chat return
-            return chat_histories[user_id]["chat_history"][-1]["content"]
+            # return chat_histories[user_id]["chat_history"][-1]["content"]
+
+            _ret = chat_histories[user_id]["chat_history"][-1]
+            if "content" in _ret and isinstance(_ret["content"], str):
+                return _ret["content"]
 
     return wrapper
 
@@ -218,18 +224,23 @@ def chat(user_id, user_input, latitude, longitude):
         chat_histories[user_id]["chat_history"].append(message)
 
     while True:
-        print(f"{user_id}=====本轮回复=====")
+        _ll = chat_histories[user_id]["chat_history"].__len__()
+        print(f"{user_id}=====本轮回复====={_ll}")
         response = get_completion(chat_histories[user_id]["chat_history"])
         if response is None:
             break
 
+        print(f"=====response.tool_calls====={response.tool_calls}")
         print_json(response)
 
         if response.content is None:
             response.content = ""
 
         with chat_histories_lock:
-            chat_histories[user_id]["chat_history"].append(response)
+            # TODO: 这里是问题根源
+            # chat_histories[user_id]["chat_history"].append(response)
+            if isinstance(response,str):
+                chat_histories[user_id]["chat_history"].append(response)
 
         if response.tool_calls:
             for tool in response.tool_calls:
@@ -249,7 +260,9 @@ def chat(user_id, user_input, latitude, longitude):
             print_json(chat_histories[user_id]["chat_history"])
             break
 
-    return chat_histories[user_id]["chat_history"][-1]["content"]
+    _ret = chat_histories[user_id]["chat_history"][-1]
+    if "content" in _ret and isinstance(_ret["content"], str):
+        return _ret["content"]
 
 
 def chat_wrapper(user_id):
