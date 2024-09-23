@@ -14,3 +14,5 @@ fastcrud~=0.13.1
 openai
 requests~=2.32.3
 PyYAML~=6.0.1
+pytest
+pytest-asyncio
