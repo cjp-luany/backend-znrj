@@ -144,7 +144,7 @@ def tool_calls_handler(tool: ChatCompletionMessageToolCall):
 
         if tool.function.name == "sql_insert":
             params = get_params_by_chat(tool.function.name, args)
-            # asyncio.run(client_post("http://127.0.0.1:6201/api/record/create", params))
+            asyncio.run(client_post("http://127.0.0.1:6201/api/record/create", params))
             # response.json()["record_id"] 有id但是需要用其他方法从异步获取结果
             result = f"记录已成功插入,record_id为"  # {unique_id}
 
@@ -173,13 +173,15 @@ def tool_calls_handler(tool: ChatCompletionMessageToolCall):
         # print(f"{user_id}====Result of {tool.function.name}====")
         # print(result)
 
-        # TODO: 发现问题，这里append没上锁，导致资源抢占
-        chat_histories[user_id]["chat_history"].append({
-            "tool_call_id": tool.id,
-            "role": "tool",
-            "name": tool.function.name,
-            "content": str(result)
-        })
+        return result
+
+        # TODO: 发现多线程问题，这里append没上锁，导致资源抢占
+        # chat_histories[user_id]["chat_history"].append({
+        #     "tool_call_id": tool.id,
+        #     "role": "tool",
+        #     "name": tool.function.name,
+        #     "content": str(result)
+        # })
 
     except Exception as e:
         print({e.__class__.__name__: str(e)})
@@ -237,17 +239,25 @@ def chat(user_id, user_input, latitude, longitude):
             response.content = ""
 
         with chat_histories_lock:
-            # TODO: 这里是问题根源
-            # chat_histories[user_id]["chat_history"].append(response)
-            if isinstance(response,str):
-                chat_histories[user_id]["chat_history"].append(response)
+            # TODO: 这里是多线程问题根源
+            chat_histories[user_id]["chat_history"].append(response)
+            # if isinstance(response,str): #     chat_histories[user_id]["chat_history"].append(response)
+
 
         if response.tool_calls:
             for tool in response.tool_calls:
                 """ 正在调用：Function Call 处理函数 """
                 # time.sleep(3)
-                tool_calls_handler(tool)
+                _r = tool_calls_handler(tool)
                 # return user_id, tool.function.name
+
+                with chat_histories_lock:
+                    chat_histories[user_id]["chat_history"].append({
+                        "tool_call_id": tool.id,
+                        "role": "tool",
+                        "name": tool.function.name,
+                        "content": str(_r)
+                    })
         else:
             final_message = {"role": "assistant", "content": response.content}
 

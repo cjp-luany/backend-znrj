@@ -83,6 +83,9 @@ class RecordItem(Base):
                 print(f"Invalid datetime format for record_time: {target.record_time}")
                 target.record_time = None
 
+        if target.record_cls is None:
+            target.record_cls = "待办"  # TODO: 多线程中不知道为什么缺失了 record_cls
+
         # 检查并转换 target_time
         process_time_field(target, 'target_time')
 
