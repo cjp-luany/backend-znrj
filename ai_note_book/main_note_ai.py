@@ -39,8 +39,7 @@ api = FastAPI()
 
 # 创建对话服务
 client = OpenAI()
-# 写入提示内容
-with open(os.path.join(CUR_DIR, "prompt/tools.txt"), 'r', encoding='utf-8') as file:
+with open(os.path.join(CUR_DIR, "prompt/agent_prompt.txt"), 'r', encoding='utf-8') as file:
     system_message_content = file.read()
 
 tools = tools_thought + tools_general + tools_rag_sql
@@ -80,7 +79,9 @@ def chat_warpper(tool_history:list) -> callable:
     def chat(user_input,latitude,longitude):
         # query_during_chat() # 对话中查询，使用服务器rag
         reset_clear_timer()
-        message = {"role": "user", "content": user_input}
+        current_time, weekday_name = get_current_time()
+        full_input = f"当前时间为{current_time}，{weekday_name}\n\n{user_input}"
+        message = {"role": "user", "content": full_input}
         chat_history.append(message)
         # 调用GPT-4模型
         while True:

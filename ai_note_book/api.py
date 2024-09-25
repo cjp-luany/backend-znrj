@@ -257,9 +257,13 @@ async def week_items( db: AsyncSession = Depends(get_session)):
                 # 选取1到16（含）之间的随机整数
                 color_number = random.randint(1, 16)
 
+                duration_in_s = 3600
                 # 计算任务完成所需的分钟数
-                duration = item["finish_time"] - item["target_time"]
-                duration_in_s = duration.total_seconds()
+                try:
+                    duration = item["finish_time"] - item["target_time"]
+                    duration_in_s = duration.total_seconds()
+                except Exception as e:
+                    print({e})
                 minutesDuration = divmod(duration_in_s, 60)[0]
 
                 # 格式化任务信息
@@ -335,7 +339,7 @@ class UploadImageItem(BaseModel):
     img_base64: str
 
 
-mykey = f'sk-yyVoHd34C4cheQLRAeB6B8C337F946Ed8629A0D7F402E6C'
+mykey = f'sk-yyVoHd34C4cheQLRAeB6B8C337F946Ed8629A0D7F402E6Ca'
 
 @api.post("/uploadOneImage/")
 async def recognize_one_image(item: UploadImageItem, db: AsyncSession = Depends(get_session)):
